@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CryptoPOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08080f;
+  --surface: #111118;
+  --surface2: #1a1a24;
+  --border: #252532;
+  --accent: #00c98a;
+  --purple: #7c3aff;
+  --warn: #ff6b35;
+  --text: #eeeef5;
+  --muted: #666678;
+  --gold: #ffd060;
+  --card-bg: #13131e;
+  --header-bg: #1a1a2e;
+}
+:root.light {
+  --bg: #f5f5fa;
+  --surface: #ffffff;
+  --surface2: #eeeef5;
+  --border: #d4d4e8;
+  --accent: #00a870;
+  --purple: #6d28d9;
+  --warn: #e85d20;
+  --text: #1a1a2e;
+  --muted: #8888a8;
+  --gold: #c47d00;
+  --card-bg: #ffffff;
+  --header-bg: #1a1a2e;
+}
+
+/* THEME TOGGLE — floating pill */
+.theme-fab {
+  position: fixed;
+  top: 50px; right: 14px;
+  z-index: 600;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 10px 5px 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  transition: background 0.25s, border-color 0.25s;
+}
+.theme-fab:hover { border-color: var(--accent); }
+.theme-fab-track {
+  width: 34px; height: 19px;
+  border-radius: 10px;
+  background: var(--border);
+  position: relative;
+  transition: background 0.28s;
+  flex-shrink: 0;
+}
+:root.light .theme-fab-track { background: #b8e8d8; }
+.theme-fab-knob {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  font-size: 9px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+:root.light .theme-fab-knob { transform: translateX(15px); }
+.theme-fab-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  max-width: 430px;
+  margin: 0 auto;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 80px rgba(0,0,0,0.6);
+}
+
+/* SCREENS */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s ease, transform 0.32s ease;
+  transform: translateY(14px);
+}
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+/* STATUS BAR */
+.status-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 44px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px;
+  pointer-events: none;
+}
+.sb-time { font-size: 13px; font-weight: 700; color: var(--text); }
+.sb-icons { display: flex; gap: 5px; align-items: center; font-size: 12px; }
+
+/* ── SCREEN 1: SPLASH ── */
+#s-splash {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+  background: var(--bg);
+}
+.splash-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  letter-spacing: 7px;
+  color: var(--accent);
+  text-shadow: 0 0 48px rgba(0,229,160,0.55);
+  margin-bottom: 6px;
+}
+.splash-tagline {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 60px;
+}
+.ripple-wrap {
+  position: relative;
+  width: 170px; height: 170px;
+  margin: 0 auto 44px;
+}
+.ripple {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  animation: ripple 2.6s ease-out infinite;
+}
+.ripple:nth-child(2) { animation-delay: 0.87s; }
+.ripple:nth-child(3) { animation-delay: 1.74s; }
+@keyframes ripple {
+  0%   { transform: scale(0.25); opacity: 0.8; }
+  100% { transform: scale(1.05); opacity: 0; }
+}
+.ripple-core {
+  position: absolute;
+  inset: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,229,160,0.12) 0%, transparent 70%);
+  border: 2px solid rgba(0,229,160,0.6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px;
+}
+.scan-status-label { font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+.scan-status-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px; letter-spacing: 2px;
+  color: var(--accent); min-height: 26px;
+}
+.scan-btn {
+  margin-top: 38px;
+  padding: 16px 44px;
+  background: var(--accent);
+  border: none; border-radius: 50px;
+  color: #000;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px; letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 0 28px rgba(0,229,160,0.35);
+}
+.scan-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 36px rgba(0,229,160,0.45); }
+.scan-btn:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: none; }
+
+/* ── SCREEN 2: STORES ── */
+#s-stores { background: var(--bg); }
+.stores-header {
+  padding: 52px 22px 16px;
+  flex-shrink: 0;
+}
+.back-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: none; border: none;
+  color: var(--muted); font-size: 13px;
+  cursor: pointer; margin-bottom: 18px; padding: 0;
+  transition: color 0.18s;
+}
+.back-btn:hover { color: var(--text); }
+.stores-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px; letter-spacing: 3px;
+  margin-bottom: 3px;
+}
+.stores-desc { font-size: 12px; color: var(--muted); }
+.signal-bar {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 12px; padding: 9px 13px;
+  background: var(--surface2); border-radius: 10px;
+  font-size: 12px;
+}
+.sdot { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; animation: blink 1.6s infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.25;} }
+.sbar-text { color: var(--muted); flex: 1; }
+.sbar-count { color: var(--accent); font-weight: 700; }
+
+.stores-list {
+  flex: 1; overflow-y: auto;
+  padding: 4px 18px 24px;
+}
+.stores-list::-webkit-scrollbar { display: none; }
+.section-sep {
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  padding: 14px 2px 10px;
+}
+
+/* STORE CARD */
+.store-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 11px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.22s;
+  position: relative;
+}
+.store-card:hover, .store-card:active {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,229,160,0.1);
+}
+.store-card.beacon-near { border-color: rgba(0,229,160,0.28); }
+.sc-inner { display: flex; }
+.sc-thumb {
+  width: 96px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px;
+  background: var(--surface2); min-height: 108px;
+}
+.sc-info { flex: 1; padding: 13px 14px 13px 13px; }
+.sc-name-row { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; }
+.sc-name { font-size: 15px; font-weight: 700; }
+.beacon-badge {
+  font-size: 10px; padding: 2px 8px;
+  border-radius: 10px; font-weight: 600;
+}
+.beacon-badge.near { background: rgba(0,229,160,0.14); color: var(--accent); border: 1px solid rgba(0,229,160,0.3); }
+.beacon-badge.far  { background: rgba(100,100,120,0.14); color: var(--muted);  border: 1px solid var(--border); }
+.sc-cat { font-size: 11px; color: var(--muted); margin-bottom: 7px; }
+.sc-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+.sc-meta-item { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 3px; }
+.sc-meta-item span { color: var(--text); }
+.sig-bars { display: flex; gap: 2px; align-items: flex-end; }
+.sbar { width: 4px; border-radius: 2px; background: var(--border); }
+.sbar.on { background: var(--accent); }
+.sbar:nth-child(1){height:5px;} .sbar:nth-child(2){height:9px;}
+.sbar:nth-child(3){height:13px;} .sbar:nth-child(4){height:17px;}
+.sc-dist {
+  position: absolute; top: 10px; right: 12px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px; letter-spacing: 1px; color: var(--accent);
+}
+.sc-dist.far { color: var(--muted); font-size: 12px; font-family: 'Noto Sans KR', sans-serif; }
+.sc-bottom {
+  padding: 9px 13px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sc-token { font-size: 11px; color: var(--muted); }
+.sc-token strong { color: var(--gold); }
+.sc-arrow { font-size: 17px; color: var(--muted); transition: all 0.18s; }
+.store-card:hover .sc-arrow { transform: translateX(5px); color: var(--accent); }
+
+/* ── SCREEN 3: DETAIL + ORDER ── */
+#s-detail { background: var(--bg); }
+.detail-hero {
+  flex-shrink: 0;
+  padding: 50px 22px 0;
+  background: linear-gradient(180deg, var(--surface2) 0%, var(--bg) 100%);
+}
+.detail-back {
+  display: flex; align-items: center; gap: 6px;
+  background: none; border: none;
+  color: var(--muted); font-size: 13px;
+  cursor: pointer; margin-bottom: 14px; padding: 0;
+  transition: color 0.18s;
+}
+.detail-back:hover { color: var(--text); }
+.hero-row { display: flex; gap: 14px; align-items: center; padding-bottom: 18px; }
+.hero-emoji {
+  width: 68px; height: 68px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; flex-shrink: 0;
+}
+.hero-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px; letter-spacing: 2px; margin-bottom: 3px;
+}
+.hero-cat { font-size: 12px; color: var(--muted); margin-bottom: 7px; }
+.hero-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.htag {
+  font-size: 10px; padding: 2px 9px;
+  border-radius: 10px; border: 1px solid var(--border); color: var(--muted);
+}
+.htag.on { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.07); }
+
+.detail-stats {
+  display: flex; gap: 1px;
+  background: var(--border); flex-shrink: 0;
+}
+.dstat {
+  flex: 1; background: var(--surface);
+  padding: 11px 8px; text-align: center;
+}
+.dstat-v { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 1px; color: var(--accent); }
+.dstat-l { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
+
+/* CAT TABS */
+.cat-tabs {
+  display: flex; gap: 6px;
+  padding: 12px 18px; overflow-x: auto; flex-shrink: 0;
+}
+.cat-tabs::-webkit-scrollbar { display: none; }
+.ctab {
+  padding: 5px 15px; border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-size: 12px; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.16s; color: var(--muted);
+}
+.ctab.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 700; }
+
+/* MENU LIST */
+.menu-list { flex: 1; overflow-y: auto; padding: 0 15px 150px; }
+.menu-list::-webkit-scrollbar { display: none; }
+.mrow {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 13px;
+  margin-bottom: 9px; padding: 13px;
+  display: flex; gap: 11px; align-items: center;
+  cursor: pointer; transition: all 0.16s; position: relative;
+}
+.mrow:hover { border-color: var(--purple); transform: translateX(3px); }
+.mrow.so { opacity: 0.35; cursor: not-allowed; }
+.mrow-em {
+  width: 56px; height: 56px; border-radius: 11px;
+  background: var(--surface2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 27px; flex-shrink: 0;
+}
+.mrow-inf { flex: 1; min-width: 0; }
+.mrow-nm  { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.mrow-ds  { font-size: 11px; color: var(--muted); margin-bottom: 6px; line-height: 1.4;
+            display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.mrow-bt  { display: flex; align-items: center; gap: 7px; }
+.mrow-pr  { font-family: 'Bebas Neue', sans-serif; font-size: 19px; letter-spacing: 1px; }
+.mrow-rw  { font-size: 10px; color: var(--purple);
+            background: rgba(124,58,255,0.1); border: 1px solid rgba(124,58,255,0.22);
+            padding: 1px 7px; border-radius: 9px; }
+.so-pill  { position: absolute; top: 8px; right: 8px;
+            background: var(--warn); color: #fff;
+            font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 7px; }
+.qty-ctrl { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.qbtn {
+  width: 27px; height: 27px; border-radius: 50%;
+  border: 1.5px solid var(--border); background: transparent;
+  color: var(--text); font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.14s;
+}
+.qbtn:hover { border-color: var(--accent); color: var(--accent); }
+.qnum { font-family: 'Bebas Neue', sans-serif; font-size: 17px; min-width: 17px; text-align: center; }
+.qadd {
+  width: 31px; height: 31px; border-radius: 50%;
+  border: none; background: var(--surface2); color: var(--text);
+  font-size: 19px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: all 0.14s;
+}
+.qadd:hover { background: var(--purple); }
+
+/* CART BAR */
+.cart-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-top: 1px solid var(--border); z-index: 50;
+}
+.cart-pill {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 19px; cursor: pointer;
+}
+.cp-left { display: flex; align-items: center; gap: 9px; }
+.cp-badge {
+  background: var(--purple); color: #fff;
+  width: 25px; height: 25px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.cp-label { font-size: 12px; color: var(--muted); }
+.cp-total { font-family: 'Bebas Neue', sans-serif; font-size: 21px; letter-spacing: 1px; }
+.cp-arr { color: var(--muted); transition: transform 0.2s; font-size: 15px; }
+.cp-arr.open { transform: rotate(180deg); }
+.cart-sheet { max-height: 0; overflow: hidden; transition: max-height 0.36s cubic-bezier(0.4,0,0.2,1); }
+.cart-sheet.open { max-height: 62vh; overflow-y: auto; }
+.cart-inner { padding: 4px 19px 15px; }
+.crow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+}
+.crow-l { display: flex; align-items: center; gap: 8px; }
+.crow-em { font-size: 19px; }
+.crow-nm { font-size: 13px; font-weight: 600; }
+.crow-pr { font-size: 11px; color: var(--muted); }
+.crow-r { display: flex; align-items: center; gap: 9px; }
+.crow-tot { font-family: 'Bebas Neue', sans-serif; font-size: 14px; }
+.crow-del { background: none; border: none; color: var(--muted); font-size: 15px; cursor: pointer; padding: 2px 4px; }
+.cart-tok-row {
+  margin: 11px 0; padding: 9px 13px;
+  background: rgba(124,58,255,0.07); border-radius: 9px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ctr-l { font-size: 12px; color: var(--purple); }
+.ctr-v { font-family: 'Bebas Neue', sans-serif; font-size: 17px; color: var(--purple); }
+.pay-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, var(--purple), #5b21b6);
+  border: none; border-radius: 11px; color: #fff;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px; letter-spacing: 2px;
+  cursor: pointer; margin-bottom: 7px; transition: all 0.2s;
+}
+.pay-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,58,255,0.4); }
+.pay-btn-alt {
+  width: 100%; padding: 11px;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 11px; color: var(--muted);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  margin-bottom: 11px; transition: all 0.18s;
+}
+.pay-btn-alt:hover { border-color: var(--muted); color: var(--text); }
+
+/* MODAL */
+.modal-overlay {
+  display: none; position: absolute; inset: 0;
+  background: rgba(0,0,0,0.78); z-index: 200; align-items: flex-end;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: var(--surface); width: 100%;
+  border-radius: 24px 24px 0 0; padding: 22px 21px 38px;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
+.modal-handle { width: 35px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 20px; }
+.modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 21px; letter-spacing: 2px; margin-bottom: 16px; text-align: center; }
+.wallet-box {
+  background: var(--surface2); border-radius: 13px; padding: 15px;
+  text-align: center; margin-bottom: 14px; border: 1px solid var(--border);
+  transition: border-color 0.2s;
+}
+.wallet-box.conn { border-color: rgba(0,229,160,0.3); }
+.wbox-icon { font-size: 30px; margin-bottom: 7px; }
+.wbox-addr { font-family: monospace; font-size: 11px; color: var(--accent);
+             background: rgba(0,229,160,0.07); padding: 5px 11px; border-radius: 7px;
+             margin: 5px 0; display: inline-block; }
+.wbox-bal { font-size: 11px; color: var(--muted); }
+.wbox-bal span { color: var(--purple); font-weight: 700; }
+.conn-btn {
+  margin-top: 9px; padding: 6px 18px;
+  border: 1px solid var(--accent); border-radius: 18px;
+  background: transparent; color: var(--accent);
+  font-size: 12px; cursor: pointer; transition: all 0.18s;
+}
+.conn-btn:hover { background: rgba(0,229,160,0.1); }
+.pay-rows { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
+.prow { display: flex; justify-content: space-between; font-size: 13px; }
+.prow-k { color: var(--muted); }
+.prow-v { font-weight: 600; }
+.prow-v.g { color: var(--accent); }
+.prow-v.p { color: var(--purple); }
+.prow-div { height: 1px; background: var(--border); }
+.pay-final {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px; letter-spacing: 2px; text-align: center; margin: 12px 0;
+}
+.confirm-btn {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, var(--accent), #00b37e);
+  border: none; border-radius: 11px; color: #000;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 19px; letter-spacing: 2px; cursor: pointer; transition: all 0.2s;
+}
+.confirm-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,229,160,0.4); }
+.cancel-link { display: block; text-align: center; margin-top: 11px; color: var(--muted); font-size: 13px; cursor: pointer; }
+
+/* SUCCESS */
+.success-screen {
+  position: absolute; inset: 0;
+  background: var(--surface2); z-index: 300;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 40px;
+}
+.success-screen.show { display: flex; animation: fadeIn 0.38s ease; }
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+.suc-circle {
+  width: 96px; height: 96px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,229,160,0.18), transparent);
+  border: 2px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 42px; margin-bottom: 18px;
+  animation: pop 0.45s cubic-bezier(0.36,0.07,0.19,0.97) 0.1s both;
+}
+@keyframes pop { 0%{transform:scale(0) rotate(-10deg);} 70%{transform:scale(1.15);} 100%{transform:scale(1);} }
+.suc-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 3px; margin-bottom: 5px; }
+.suc-order { font-size: 12px; color: var(--muted); margin-bottom: 26px; }
+.suc-tok-box {
+  background: rgba(255,208,96,0.07); border: 1px solid rgba(255,208,96,0.22);
+  border-radius: 15px; padding: 18px 34px; margin-bottom: 14px; width: 100%;
+}
+.suc-tok-l { font-size: 10px; color: rgba(255,208,96,0.55); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+.suc-tok-v { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 2px; color: var(--gold); }
+.suc-hash { font-family: monospace; font-size: 10px; color: rgba(124,58,255,0.55); margin-bottom: 26px; }
+.suc-back {
+  padding: 13px 34px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 28px;
+  color: var(--text); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.18s;
+}
+.suc-back:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="status-bar">
+  <div class="sb-time" id="sbTime">9:41</div>
+  <div class="sb-icons"><span>📶</span><span>🔋</span></div>
+</div>
+
+<!-- THEME TOGGLE FAB -->
+<div class="theme-fab" onclick="toggleTheme()" title="다크/라이트 모드">
+  <div class="theme-fab-track">
+    <div class="theme-fab-knob" id="themeKnob">🌙</div>
+  </div>
+  <div class="theme-fab-label" id="themeLabel">다크</div>
+</div>
+
+<!-- ══ SCREEN 1: SPLASH / SCAN ══ -->
+<div class="screen active" id="s-splash">
+  <div class="splash-logo">CryptoPOS</div>
+  <div class="splash-tagline">Blockchain · Reward · Payment</div>
+  <div class="ripple-wrap">
+    <div class="ripple"></div>
+    <div class="ripple"></div>
+    <div class="ripple"></div>
+    <div class="ripple-core">📡</div>
+  </div>
+  <div class="scan-status-label">BLE 비콘 탐색</div>
+  <div class="scan-status-val" id="scanStatus">대기 중...</div>
+  <button class="scan-btn" id="scanBtn" onclick="startScan()">📡 주변 매장 찾기</button>
+</div>
+
+<!-- ══ SCREEN 2: STORE LIST ══ -->
+<div class="screen" id="s-stores">
+  <div class="stores-header">
+    <button class="back-btn" onclick="goTo('s-splash')">← 뒤로</button>
+    <div class="stores-title">주변 매장</div>
+    <div class="stores-desc">BLE 비콘이 감지된 매장 목록입니다</div>
+    <div class="signal-bar">
+      <div class="sdot"></div>
+      <div class="sbar-text">Wizchain 네트워크 연결됨</div>
+      <div class="sbar-count" id="storeCount">0개</div>
+    </div>
+  </div>
+  <div class="stores-list" id="storesList"></div>
+</div>
+
+<!-- ══ SCREEN 3: STORE DETAIL ══ -->
+<div class="screen" id="s-detail">
+  <div class="detail-hero">
+    <button class="detail-back" onclick="goTo('s-stores')">← 매장 목록</button>
+    <div class="hero-row">
+      <div class="hero-emoji" id="dEmoji">☕</div>
+      <div>
+        <div class="hero-name" id="dName">위즈카페</div>
+        <div class="hero-cat" id="dCat">카페 · 강남구</div>
+        <div class="hero-tags">
+          <div class="htag on">🔗 체인 결제</div>
+          <div class="htag on">🪙 WIZ 적립</div>
+          <div class="htag">📶 BLE 연결</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="detail-stats">
+    <div class="dstat"><div class="dstat-v" id="dMenuCnt">0</div><div class="dstat-l">메뉴</div></div>
+    <div class="dstat"><div class="dstat-v" id="dDist">0m</div><div class="dstat-l">거리</div></div>
+    <div class="dstat"><div class="dstat-v">WIZ</div><div class="dstat-l">토큰</div></div>
+    <div class="dstat"><div class="dstat-v" id="dRssi">-</div><div class="dstat-l">신호</div></div>
+  </div>
+  <div class="cat-tabs" id="catTabs"></div>
+  <div class="menu-list" id="menuList"></div>
+
+  <div class="cart-bar">
+    <div class="cart-pill" onclick="toggleCart()">
+      <div class="cp-left">
+        <div class="cp-badge" id="cpBadge">0</div>
+        <div class="cp-label">장바구니</div>
+      </div>
+      <div class="cp-total" id="cpTotal">₩ 0</div>
+      <div class="cp-arr" id="cpArr">▲</div>
+    </div>
+    <div class="cart-sheet" id="cartSheet">
+      <div class="cart-inner" id="cartInner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">결제 확인</div>
+    <div class="wallet-box" id="walletBox">
+      <div class="wbox-icon">🦊</div>
+      <div id="wBoxContent">
+        <div style="font-size:13px;color:var(--muted)">MetaMask 연결 필요</div>
+        <button class="conn-btn" onclick="connectWallet()">🔗 지갑 연결</button>
+      </div>
+    </div>
+    <div class="pay-rows" id="payRows"></div>
+    <div class="pay-final" id="payFinal">₩ 0</div>
+    <button class="confirm-btn" onclick="executePayment()">✅ 결제 확정</button>
+    <div class="cancel-link" onclick="closeModal()">취소</div>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div class="success-screen" id="sucScreen">
+  <div class="suc-circle">🎉</div>
+  <div class="suc-title">결제 완료!</div>
+  <div class="suc-order" id="sucOrder">주문번호 #0000</div>
+  <div class="suc-tok-box">
+    <div class="suc-tok-l">WIZ 토큰 적립</div>
+    <div class="suc-tok-v" id="sucTok">+0</div>
+  </div>
+  <div class="suc-hash" id="sucHash">Tx: 0x...</div>
+  <button class="suc-back" onclick="closeSuc()">← 메뉴로 돌아가기</button>
+</div>
+
+<script>
+const MENU_KEY  = 'cryptopos_menus';
+const ORDER_KEY = 'cryptopos_orders';
+
+let menus        = [];
+let cart         = {};
+let cartOpen     = false;
+let currentCat   = 'all';
+let walletConn   = false;
+let walletAddr   = '';
+let myTokens     = 0;
+let todayEarned  = 0;
+let currentStore = null;
+
+/* ── STORE DATA ── */
+const STORES = [
+  {
+    id:'wiz_gangnam', name:'위즈카페 강남점', cat:'☕ 카페', emoji:'☕',
+    dist:12, rssi:-52, signal:4,
+    address:'서울 강남구 테헤란로 123', hours:'08:00–22:00',
+    useLs: true   // localStorage 공유 (점주 앱 연동)
+  },
+  {
+    id:'bake_seocho', name:'베이크하우스 서초', cat:'🥐 베이커리', emoji:'🥐',
+    dist:48, rssi:-67, signal:3,
+    address:'서울 서초구 서초대로 45', hours:'07:30–21:00',
+    useLs: false,
+    menus:[
+      {id:201,name:'크루아상',cat:'🥐 빵',price:3800,emoji:'🥐',reward:1.5,soldout:false,desc:'버터 풍미 가득한 정통 크루아상'},
+      {id:202,name:'팥 소보로',cat:'🥐 빵',price:2500,emoji:'🍞',reward:1,soldout:false,desc:'달콤한 팥 소 가득'},
+      {id:203,name:'아메리카노',cat:'☕ 음료',price:4000,emoji:'☕',reward:1,soldout:false,desc:'깔끔한 블랙 커피'},
+      {id:204,name:'딸기케이크',cat:'🍰 케이크',price:7500,emoji:'🍓',reward:2,soldout:true,desc:'신선한 딸기 생크림'},
+    ]
+  },
+  {
+    id:'bbq_mapo', name:'마포 숯불갈비', cat:'🍖 한식', emoji:'🔥',
+    dist:134, rssi:-78, signal:2,
+    address:'서울 마포구 어울마당로 77', hours:'11:30–23:00',
+    useLs: false,
+    menus:[
+      {id:301,name:'돼지갈비 1인',cat:'🍖 고기',price:15000,emoji:'🥩',reward:2,soldout:false,desc:'국내산 한돈 숯불구이'},
+      {id:302,name:'소불고기',cat:'🍖 고기',price:18000,emoji:'🔥',reward:2.5,soldout:false,desc:'부드러운 한우'},
+      {id:303,name:'냉면',cat:'🍜 면',price:9000,emoji:'🍜',reward:1,soldout:false,desc:'시원한 평양냉면'},
+      {id:304,name:'공기밥',cat:'🍚 사이드',price:1000,emoji:'🍚',reward:0.5,soldout:false,desc:''},
+    ]
+  },
+  {
+    id:'book_hongdae', name:'홍대 북카페', cat:'📚 카페', emoji:'📚',
+    dist:312, rssi:-85, signal:1,
+    address:'서울 마포구 홍익로 88', hours:'10:00–23:00',
+    useLs: false,
+    menus:[
+      {id:401,name:'아이스 아메리카노',cat:'☕ 커피',price:4500,emoji:'🧊',reward:1,soldout:false,desc:'시원한 아이스 아메리카노'},
+      {id:402,name:'책읽기 패키지',cat:'📦 패키지',price:12000,emoji:'📖',reward:3,soldout:false,desc:'음료+3시간 좌석'},
+    ]
+  },
+];
+
+/* ── UTILS ── */
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function ftime() {
+  const n=new Date();
+  return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+}
+setInterval(()=>{ document.getElementById('sbTime').textContent=ftime(); },15000);
+document.getElementById('sbTime').textContent=ftime();
+
+/* ── SCREEN 1: SCAN ── */
+const SCAN_STEPS = [
+  '채널 초기화...', 'BLE 4.2 활성화...',
+  'iBeacon 신호 탐색...', 'UUID 필터: CRYPTOPOS...',
+  '신호 강도 분석...', '매장 정보 조회 중...',
+  `✅ ${STORES.length}개 매장 발견!`
+];
+function startScan() {
+  const btn=document.getElementById('scanBtn');
+  const st=document.getElementById('scanStatus');
+  btn.disabled=true; btn.textContent='스캔 중...';
+  let i=0;
+  const iv=setInterval(()=>{
+    st.textContent=SCAN_STEPS[i++];
+    if(i>=SCAN_STEPS.length){
+      clearInterval(iv);
+      setTimeout(()=>{
+        buildStoreList(); goTo('s-stores');
+        btn.disabled=false; btn.textContent='📡 다시 스캔';
+        st.textContent='대기 중...';
+      },600);
+    }
+  },380);
+}
+
+/* ── SCREEN 2: STORE LIST ── */
+function sigHtml(n){
+  return `<div class="sig-bars">${[1,2,3,4].map(i=>`<div class="sbar ${i<=n?'on':''}"></div>`).join('')}</div>`;
+}
+function buildStoreList() {
+  document.getElementById('storeCount').textContent=`${STORES.length}개`;
+  const nearby=STORES.filter(s=>s.dist<=50);
+  const far=STORES.filter(s=>s.dist>50);
+  let html='';
+  if(nearby.length){ html+=`<div class="section-sep">📍 매우 가까운 매장 (50m 이내)</div>`; nearby.forEach(s=>{html+=scCard(s,true);}); }
+  if(far.length){ html+=`<div class="section-sep">📡 비콘 감지 매장</div>`; far.forEach(s=>{html+=scCard(s,false);}); }
+  document.getElementById('storesList').innerHTML=html;
+}
+function scCard(s,near){
+  const d=s.dist<1000?`${s.dist}m`:`${(s.dist/1000).toFixed(1)}km`;
+  return `<div class="store-card ${near?'beacon-near':''}" onclick="openStore('${s.id}')">
+    <div class="sc-inner">
+      <div class="sc-thumb">${s.emoji}</div>
+      <div class="sc-info">
+        <div class="sc-name-row">
+          <div class="sc-name">${s.name}</div>
+          <div class="beacon-badge ${near?'near':'far'}">${near?'📶 감지됨':'신호 약함'}</div>
+        </div>
+        <div class="sc-cat">${s.cat}</div>
+        <div class="sc-meta">
+          <div class="sc-meta-item">📍 <span>${s.address.slice(0,10)}...</span></div>
+          <div class="sc-meta-item">🕐 <span>${s.hours}</span></div>
+          <div class="sc-meta-item">${sigHtml(s.signal)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="sc-dist ${near?'':'far'}">${d}</div>
+    <div class="sc-bottom">
+      <div class="sc-token">🪙 WIZ 토큰 <strong>적립 가능</strong></div>
+      <div class="sc-arrow">→</div>
+    </div>
+  </div>`;
+}
+
+/* ── SCREEN 3: DETAIL ── */
+function openStore(id) {
+  currentStore=STORES.find(s=>s.id===id); if(!currentStore) return;
+  cart={};
+  if(currentStore.useLs){
+    menus=JSON.parse(localStorage.getItem(MENU_KEY)||'[]');
+    if(!menus.length) menus=[
+      {id:1,name:'아메리카노',cat:'☕ 커피',price:4500,emoji:'☕',reward:1,soldout:false,desc:'진한 에스프레소와 물의 조화'},
+      {id:2,name:'카페라떼',cat:'☕ 커피',price:5000,emoji:'🥛',reward:1.5,soldout:false,desc:'부드러운 우유 라떼'},
+      {id:3,name:'바닐라라떼',cat:'☕ 커피',price:5500,emoji:'🍶',reward:2,soldout:false,desc:'달콤한 바닐라 시럽'},
+      {id:4,name:'녹차라떼',cat:'🍵 논커피',price:5500,emoji:'🍵',reward:1,soldout:false,desc:'제주산 녹차'},
+      {id:5,name:'딸기스무디',cat:'🥤 스무디',price:6500,emoji:'🍓',reward:2,soldout:false,desc:'신선한 딸기'},
+      {id:6,name:'치즈케이크',cat:'🍰 디저트',price:7000,emoji:'🍰',reward:3,soldout:false,desc:'뉴욕 스타일'},
+    ];
+  } else { menus=currentStore.menus||[]; }
+
+  document.getElementById('dEmoji').textContent=currentStore.emoji;
+  document.getElementById('dName').textContent=currentStore.name;
+  document.getElementById('dCat').textContent=`${currentStore.cat} · ${currentStore.address.slice(0,8)}`;
+  document.getElementById('dMenuCnt').textContent=menus.filter(m=>!m.soldout).length;
+  document.getElementById('dDist').textContent=currentStore.dist+'m';
+  document.getElementById('dRssi').textContent=currentStore.rssi+'dB';
+
+  currentCat='all';
+  renderCatTabs(); renderMenuList(); updateCartBar();
+  goTo('s-detail');
+}
+
+function renderCatTabs(){
+  const cats=['all',...new Set(menus.map(m=>m.cat))];
+  document.getElementById('catTabs').innerHTML=cats.map(c=>`
+    <button class="ctab ${c===currentCat?'active':''}" onclick="selCat('${c}',this)">
+      ${c==='all'?'🍽 전체':c}
+    </button>`).join('');
+}
+function selCat(cat,btn){
+  currentCat=cat;
+  document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderMenuList();
+}
+function renderMenuList(){
+  const fl=currentCat==='all'?menus:menus.filter(m=>m.cat===currentCat);
+  const list=document.getElementById('menuList');
+  if(!fl.length){ list.innerHTML='<div style="text-align:center;padding:36px;color:var(--muted)">메뉴가 없습니다</div>'; return; }
+  list.innerHTML=fl.map(m=>{
+    const q=cart[m.id]||0;
+    return `<div class="mrow ${m.soldout?'so':''}" onclick="${m.soldout?'':` addItem(${m.id})`}">
+      ${m.soldout?'<div class="so-pill">품절</div>':''}
+      <div class="mrow-em">${m.emoji}</div>
+      <div class="mrow-inf">
+        <div class="mrow-nm">${m.name}</div>
+        ${m.desc?`<div class="mrow-ds">${m.desc}</div>`:''}
+        <div class="mrow-bt">
+          <div class="mrow-pr">₩ ${m.price.toLocaleString()}</div>
+          <div class="mrow-rw">🪙 ${m.reward}x</div>
+        </div>
+      </div>
+      ${m.soldout?'': q>0?`<div class="qty-ctrl" onclick="event.stopPropagation()">
+        <button class="qbtn" onclick="removeItem(${m.id})">−</button>
+        <div class="qnum">${q}</div>
+        <button class="qbtn" onclick="addItem(${m.id})">+</button>
+      </div>`:`<button class="qadd" onclick="event.stopPropagation();addItem(${m.id})">+</button>`}
+    </div>`;
+  }).join('');
+}
+
+function addItem(id){ cart[id]=(cart[id]||0)+1; updateCartBar(); renderMenuList(); }
+function removeItem(id){ if(!cart[id])return; cart[id]--; if(!cart[id])delete cart[id]; updateCartBar(); renderMenuList(); }
+
+function updateCartBar(){
+  const ids=Object.keys(cart);
+  const cnt=ids.reduce((s,id)=>s+cart[id],0);
+  const tot=ids.reduce((s,id)=>{ const m=menus.find(m=>m.id==id); return m?s+m.price*cart[id]:s; },0);
+  document.getElementById('cpBadge').textContent=cnt;
+  document.getElementById('cpTotal').textContent='₩ '+tot.toLocaleString();
+}
+
+function toggleCart(){
+  cartOpen=!cartOpen;
+  document.getElementById('cartSheet').classList.toggle('open',cartOpen);
+  document.getElementById('cpArr').classList.toggle('open',cartOpen);
+  if(cartOpen) renderCartInner();
+}
+function renderCartInner(){
+  const ids=Object.keys(cart);
+  const inner=document.getElementById('cartInner');
+  if(!ids.length){ inner.innerHTML='<div style="text-align:center;padding:22px;color:var(--muted)">장바구니가 비어있어요</div>'; return; }
+  const tot=ids.reduce((s,id)=>{ const m=menus.find(m=>m.id==id); return m?s+m.price*cart[id]:s; },0);
+  const tok=ids.reduce((s,id)=>{ const m=menus.find(m=>m.id==id); return m?s+(m.price*cart[id]/1000)*m.reward:s; },0);
+  inner.innerHTML=`
+    ${ids.map(id=>{ const m=menus.find(m=>m.id==id); if(!m)return'';
+      return `<div class="crow">
+        <div class="crow-l"><div class="crow-em">${m.emoji}</div><div>
+          <div class="crow-nm">${m.name} × ${cart[id]}</div>
+          <div class="crow-pr">₩ ${m.price.toLocaleString()} × ${cart[id]}</div>
+        </div></div>
+        <div class="crow-r">
+          <div class="crow-tot">₩ ${(m.price*cart[id]).toLocaleString()}</div>
+          <button class="crow-del" onclick="removeItem(${m.id});renderCartInner()">✕</button>
+        </div>
+      </div>`;
+    }).join('')}
+    <div class="cart-tok-row">
+      <div class="ctr-l">🪙 예상 WIZ 적립</div>
+      <div class="ctr-v">+${tok.toFixed(1)}</div>
+    </div>
+    <button class="pay-btn" onclick="openPay()">🔗 WIZ 토큰으로 결제</button>
+    <button class="pay-btn-alt" onclick="openPay()">💳 일반 결제</button>
+  `;
+}
+
+/* ── WALLET ── */
+function connectWallet(){
+  walletConn=true;
+  walletAddr='0x'+Math.random().toString(16).slice(2,10).toUpperCase()+'...f3';
+  myTokens=Math.floor(Math.random()*500)+50;
+  refreshWalletBox();
+}
+function refreshWalletBox(){
+  const box=document.getElementById('walletBox');
+  if(walletConn){
+    box.classList.add('conn');
+    document.getElementById('wBoxContent').innerHTML=`
+      <div class="wbox-addr">${walletAddr}</div>
+      <div class="wbox-bal">보유 WIZ: <span>${myTokens.toFixed(1)}</span></div>`;
+  }
+}
+
+/* ── PAYMENT ── */
+function openPay(){
+  const ids=Object.keys(cart); if(!ids.length)return;
+  const tot=ids.reduce((s,id)=>{ const m=menus.find(m=>m.id==id); return m?s+m.price*cart[id]:s; },0);
+  const tok=ids.reduce((s,id)=>{ const m=menus.find(m=>m.id==id); return m?s+(m.price*cart[id]/1000)*m.reward:s; },0);
+  const disc=walletConn?Math.min(myTokens*10,Math.floor(tot*0.1)):0;
+  const final=tot-disc;
+  document.getElementById('payRows').innerHTML=`
+    <div class="prow"><span class="prow-k">주문 금액</span><span class="prow-v">₩ ${tot.toLocaleString()}</span></div>
+    ${walletConn&&disc>0?`<div class="prow"><span class="prow-k">토큰 할인</span><span class="prow-v g">- ₩ ${disc.toLocaleString()}</span></div>`:''}
+    <div class="prow-div"></div>
+    <div class="prow"><span class="prow-k">예상 적립</span><span class="prow-v p">+ ${tok.toFixed(1)} WIZ</span></div>
+  `;
+  document.getElementById('payFinal').textContent='₩ '+final.toLocaleString();
+  refreshWalletBox();
+  document.getElementById('payModal').classList.add('show');
+}
+function closeModal(){ document.getElementById('payModal').classList.remove('show'); }
+
+function executePayment(){
+  const ids=Object.keys(cart); if(!ids.length)return;
+  const tot=ids.reduce((s,id)=>{ const m=menus.find(m=>m.id==id); return m?s+m.price*cart[id]:s; },0);
+  const tok=ids.reduce((s,id)=>{ const m=menus.find(m=>m.id==id); return m?s+(m.price*cart[id]/1000)*m.reward:s; },0);
+  const items=ids.map(id=>{ const m=menus.find(m=>m.id==id); return {name:m.name,emoji:m.emoji,qty:cart[id],price:m.price}; });
+  const order={id:Date.now(),items,total:tot,tokens:parseFloat(tok.toFixed(1)),status:'new',time:ftime(),wallet:walletAddr||'anon',store:currentStore?.id};
+  const orders=JSON.parse(localStorage.getItem(ORDER_KEY)||'[]');
+  orders.push(order); localStorage.setItem(ORDER_KEY,JSON.stringify(orders));
+  todayEarned+=tok; myTokens+=tok;
+  closeModal(); if(cartOpen)toggleCart();
+  const oid=String(order.id).slice(-4);
+  const tx='0x'+Math.random().toString(16).slice(2,18).toUpperCase();
+  document.getElementById('sucOrder').textContent=`주문번호 #${oid} · ${currentStore?.name||''}`;
+  document.getElementById('sucTok').textContent=`+${tok.toFixed(1)}`;
+  document.getElementById('sucHash').textContent=`Tx: ${tx}`;
+  document.getElementById('sucScreen').classList.add('show');
+  cart={}; updateCartBar();
+}
+function closeSuc(){ document.getElementById('sucScreen').classList.remove('show'); renderMenuList(); }
+
+/* ── SYNC ── */
+setInterval(()=>{
+  if(!currentStore?.useLs)return;
+  const fresh=JSON.parse(localStorage.getItem(MENU_KEY)||'[]');
+  if(JSON.stringify(fresh)!==JSON.stringify(menus)&&fresh.length){
+    menus=fresh; renderCatTabs(); renderMenuList();
+    document.getElementById('dMenuCnt').textContent=menus.filter(m=>!m.soldout).length;
+    if(cartOpen)renderCartInner();
+  }
+},2000);
+window.addEventListener('storage',e=>{
+  if(e.key===MENU_KEY&&currentStore?.useLs){
+    menus=JSON.parse(e.newValue||'[]');
+    renderCatTabs(); renderMenuList(); if(cartOpen)renderCartInner();
+  }
+});
+/* ── THEME ── */
+function applyTheme(isLight) {
+  const root  = document.documentElement;
+  const knob  = document.getElementById('themeKnob');
+  const label = document.getElementById('themeLabel');
+  if (isLight) {
+    root.classList.add('light');
+    knob.textContent  = '☀️';
+    label.textContent = '라이트';
+  } else {
+    root.classList.remove('light');
+    knob.textContent  = '🌙';
+    label.textContent = '다크';
+  }
+  localStorage.setItem('cryptopos_theme', isLight ? 'light' : 'dark');
+}
+function toggleTheme() {
+  applyTheme(!document.documentElement.classList.contains('light'));
+}
+
+// init theme
+applyTheme(localStorage.getItem('cryptopos_theme') === 'light');
+</script>
+</body>
+</html>
