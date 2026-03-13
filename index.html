@@ -568,8 +568,74 @@ body {
   <div class="theme-fab-label" id="themeLabel">다크</div>
 </div>
 
+<!-- ══ SCREEN 0: 지갑 연결 ══ -->
+<div class="screen active" id="s-wallet">
+  <div class="splash-logo">CryptoPOS</div>
+  <div class="splash-tagline">Blockchain · Reward · Payment</div>
+
+  <div style="width:100%;max-width:340px;margin:32px auto 0;padding:0 20px;">
+
+    <!-- 연결된 상태 -->
+    <div id="walletConnected" style="display:none;background:rgba(0,201,138,0.08);border:1px solid rgba(0,201,138,0.3);border-radius:16px;padding:18px;margin-bottom:20px;text-align:center;">
+      <div style="font-size:11px;color:var(--accent);letter-spacing:1px;margin-bottom:6px">CONNECTED</div>
+      <div id="walletAddrDisplay" style="font-family:monospace;font-size:13px;color:var(--text)">-</div>
+      <div id="walletBalDisplay" style="font-size:12px;color:var(--muted);margin-top:4px">OZ: 0</div>
+    </div>
+
+    <!-- 에러 -->
+    <div id="walletError" style="display:none;background:rgba(255,107,53,0.1);border:1px solid rgba(255,107,53,0.3);border-radius:12px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--warn);text-align:center;"></div>
+
+    <!-- 지갑 선택 버튼들 -->
+    <div id="walletButtons">
+      <!-- MetaMask -->
+      <button onclick="connectWallet('metamask')" style="width:100%;display:flex;align-items:center;gap:14px;background:rgba(246,133,27,0.08);border:1px solid rgba(246,133,27,0.3);border-radius:14px;padding:16px 18px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#f6851b'" onmouseout="this.style.borderColor='rgba(246,133,27,0.3)'">
+        <span style="font-size:28px">🦊</span>
+        <div style="text-align:left;">
+          <div style="font-size:15px;font-weight:700;color:var(--text)">MetaMask</div>
+          <div style="font-size:11px;color:var(--muted)">브라우저 익스텐션 / 모바일 앱</div>
+        </div>
+        <span style="margin-left:auto;color:var(--muted);font-size:18px">→</span>
+      </button>
+
+      <!-- Trust Wallet -->
+      <button onclick="connectWallet('trustwallet')" style="width:100%;display:flex;align-items:center;gap:14px;background:rgba(51,117,255,0.08);border:1px solid rgba(51,117,255,0.3);border-radius:14px;padding:16px 18px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#3375ff'" onmouseout="this.style.borderColor='rgba(51,117,255,0.3)'">
+        <span style="font-size:28px">🛡️</span>
+        <div style="text-align:left;">
+          <div style="font-size:15px;font-weight:700;color:var(--text)">Trust Wallet</div>
+          <div style="font-size:11px;color:var(--muted)">모바일 QR 연결</div>
+        </div>
+        <span style="margin-left:auto;color:var(--muted);font-size:18px">→</span>
+      </button>
+
+      <!-- WalletConnect -->
+      <button onclick="connectWallet('walletconnect')" style="width:100%;display:flex;align-items:center;gap:14px;background:rgba(59,153,252,0.08);border:1px solid rgba(59,153,252,0.3);border-radius:14px;padding:16px 18px;margin-bottom:20px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#3b99fc'" onmouseout="this.style.borderColor='rgba(59,153,252,0.3)'">
+        <span style="font-size:28px">🔗</span>
+        <div style="text-align:left;">
+          <div style="font-size:15px;font-weight:700;color:var(--text)">WalletConnect</div>
+          <div style="font-size:11px;color:var(--muted)">300+ 지갑 QR 연결</div>
+        </div>
+        <span style="margin-left:auto;color:var(--muted);font-size:18px">→</span>
+      </button>
+    </div>
+
+    <!-- 연결 완료 후 버튼 -->
+    <button id="enterAppBtn" onclick="enterApp()" style="display:none;width:100%;padding:16px;background:var(--accent);border:none;border-radius:14px;color:#000;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:12px;">
+      매장 탐색 시작 →
+    </button>
+
+    <!-- 지갑 없이 둘러보기 -->
+    <button onclick="enterApp(true)" style="width:100%;padding:14px;background:transparent;border:1px solid var(--border);border-radius:14px;color:var(--muted);font-size:13px;cursor:pointer;">
+      지갑 없이 둘러보기
+    </button>
+
+    <div style="text-align:center;margin-top:24px;font-size:11px;color:var(--muted);line-height:1.7;">
+      WizChain (Chain ID: 10243) 네트워크<br>결제 시 자동으로 네트워크 전환됩니다
+    </div>
+  </div>
+</div>
+
 <!-- ══ SCREEN 1: SPLASH / SCAN ══ -->
-<div class="screen active" id="s-splash">
+<div class="screen" id="s-splash">
   <div class="splash-logo">CryptoPOS</div>
   <div class="splash-tagline">Blockchain · Reward · Payment</div>
   <div class="ripple-wrap">
@@ -672,6 +738,22 @@ body {
 </div>
 
 <script>
+// ══════════════════════════════════════
+//  서버 API 설정
+// ══════════════════════════════════════
+const API_BASE = 'http://15.164.93.243';  // ← EC2 퍼블릭 IP
+const WS_BASE  = 'ws://15.164.93.243';
+
+// WizChain 설정
+const WIZCHAIN = {
+  chainId:    10243,
+  chainIdHex: '0x27F3',
+  chainName:  'WizChain',
+  rpcUrl:     'https://rpc.wizclass.net',
+  symbol:     'WCN',
+  explorer:   'https://explorer.wizclass.net',
+};
+
 const MENU_KEY  = 'cryptopos_menus';
 const ORDER_KEY = 'cryptopos_orders';
 
@@ -684,50 +766,263 @@ let walletAddr   = '';
 let myTokens     = 0;
 let todayEarned  = 0;
 let currentStore = null;
+let userLat      = null;
+let userLng      = null;
+let allStores    = [];
 
-/* ── STORE DATA ── */
-const STORES = [
-  {
-    id:'wiz_gangnam', name:'위즈카페 강남점', cat:'☕ 카페', emoji:'☕',
-    dist:12, rssi:-52, signal:4,
-    address:'서울 강남구 테헤란로 123', hours:'08:00–22:00',
-    useLs: true   // localStorage 공유 (점주 앱 연동)
-  },
-  {
-    id:'bake_seocho', name:'베이크하우스 서초', cat:'🥐 베이커리', emoji:'🥐',
-    dist:48, rssi:-67, signal:3,
-    address:'서울 서초구 서초대로 45', hours:'07:30–21:00',
-    useLs: false,
-    menus:[
-      {id:201,name:'크루아상',cat:'🥐 빵',price:3800,emoji:'🥐',reward:1.5,soldout:false,desc:'버터 풍미 가득한 정통 크루아상'},
-      {id:202,name:'팥 소보로',cat:'🥐 빵',price:2500,emoji:'🍞',reward:1,soldout:false,desc:'달콤한 팥 소 가득'},
-      {id:203,name:'아메리카노',cat:'☕ 음료',price:4000,emoji:'☕',reward:1,soldout:false,desc:'깔끔한 블랙 커피'},
-      {id:204,name:'딸기케이크',cat:'🍰 케이크',price:7500,emoji:'🍓',reward:2,soldout:true,desc:'신선한 딸기 생크림'},
-    ]
-  },
-  {
-    id:'bbq_mapo', name:'마포 숯불갈비', cat:'🍖 한식', emoji:'🔥',
-    dist:134, rssi:-78, signal:2,
-    address:'서울 마포구 어울마당로 77', hours:'11:30–23:00',
-    useLs: false,
-    menus:[
-      {id:301,name:'돼지갈비 1인',cat:'🍖 고기',price:15000,emoji:'🥩',reward:2,soldout:false,desc:'국내산 한돈 숯불구이'},
-      {id:302,name:'소불고기',cat:'🍖 고기',price:18000,emoji:'🔥',reward:2.5,soldout:false,desc:'부드러운 한우'},
-      {id:303,name:'냉면',cat:'🍜 면',price:9000,emoji:'🍜',reward:1,soldout:false,desc:'시원한 평양냉면'},
-      {id:304,name:'공기밥',cat:'🍚 사이드',price:1000,emoji:'🍚',reward:0.5,soldout:false,desc:''},
-    ]
-  },
-  {
-    id:'book_hongdae', name:'홍대 북카페', cat:'📚 카페', emoji:'📚',
-    dist:312, rssi:-85, signal:1,
-    address:'서울 마포구 홍익로 88', hours:'10:00–23:00',
-    useLs: false,
-    menus:[
-      {id:401,name:'아이스 아메리카노',cat:'☕ 커피',price:4500,emoji:'🧊',reward:1,soldout:false,desc:'시원한 아이스 아메리카노'},
-      {id:402,name:'책읽기 패키지',cat:'📦 패키지',price:12000,emoji:'📖',reward:3,soldout:false,desc:'음료+3시간 좌석'},
-    ]
-  },
-];
+// ══════════════════════════════════════
+//  지갑 연결
+// ══════════════════════════════════════
+async function connectWallet(type) {
+  const errEl = document.getElementById('walletError');
+  errEl.style.display = 'none';
+
+  try {
+    let provider = null;
+
+    if (type === 'metamask') {
+      // MetaMask
+      if (!window.ethereum) {
+        errEl.textContent = 'MetaMask가 설치되지 않았습니다. metamask.io에서 설치하세요.';
+        errEl.style.display = 'block';
+        return;
+      }
+      provider = window.ethereum;
+
+    } else if (type === 'trustwallet') {
+      // Trust Wallet (모바일은 window.ethereum 공유)
+      if (window.ethereum?.isTrust || window.trustwallet) {
+        provider = window.trustwallet || window.ethereum;
+      } else if (window.ethereum) {
+        // 데스크탑에서 MetaMask로 폴백
+        provider = window.ethereum;
+      } else {
+        errEl.textContent = 'Trust Wallet 앱에서 이 페이지를 열어주세요.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+    } else if (type === 'walletconnect') {
+      // WalletConnect — ethereum provider 없으면 안내
+      if (!window.ethereum) {
+        errEl.textContent = '모바일에서 지갑 앱 → DApp 브라우저로 이 페이지를 열어주세요.\n또는 MetaMask를 설치하세요.';
+        errEl.style.display = 'block';
+        errEl.style.whiteSpace = 'pre-line';
+        return;
+      }
+      provider = window.ethereum;
+    }
+
+    // 계정 요청
+    const accounts = await provider.request({ method: 'eth_requestAccounts' });
+    if (!accounts.length) throw new Error('계정을 선택하지 않았습니다');
+
+    walletAddr = accounts[0];
+    walletConn = true;
+
+    // WizChain 네트워크 전환
+    await switchToWizChain(provider);
+
+    // UI 업데이트
+    document.getElementById('walletAddrDisplay').textContent =
+      walletAddr.slice(0,6) + '...' + walletAddr.slice(-4);
+    document.getElementById('walletConnected').style.display = 'block';
+    document.getElementById('walletButtons').style.display = 'none';
+    document.getElementById('enterAppBtn').style.display = 'block';
+
+    // localStorage 저장 (재방문 자동 연결)
+    localStorage.setItem('wc_address', walletAddr);
+
+  } catch (e) {
+    errEl.textContent = '연결 실패: ' + (e.message || e);
+    errEl.style.display = 'block';
+  }
+}
+
+async function switchToWizChain(provider) {
+  try {
+    await provider.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: WIZCHAIN.chainIdHex }],
+    });
+  } catch (err) {
+    if (err.code === 4902) {
+      await provider.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId:           WIZCHAIN.chainIdHex,
+          chainName:         WIZCHAIN.chainName,
+          nativeCurrency:    { name:'WCN', symbol:WIZCHAIN.symbol, decimals:18 },
+          rpcUrls:           [WIZCHAIN.rpcUrl],
+          blockExplorerUrls: [WIZCHAIN.explorer],
+        }],
+      });
+    }
+  }
+}
+
+function enterApp(guest = false) {
+  if (guest) {
+    walletConn = false;
+    walletAddr = '';
+  }
+  goTo('s-splash');
+}
+
+// 재방문 시 자동 연결 시도
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('wc_address');
+  if (saved && window.ethereum) {
+    window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+      if (accounts.length) {
+        walletAddr = accounts[0];
+        walletConn = true;
+        document.getElementById('walletAddrDisplay').textContent =
+          walletAddr.slice(0,6) + '...' + walletAddr.slice(-4);
+        document.getElementById('walletConnected').style.display = 'block';
+        document.getElementById('walletButtons').style.display = 'none';
+        document.getElementById('enterAppBtn').style.display = 'block';
+      }
+    });
+  }
+});   // Google Sheets에서 로드된 전체 가맹점
+
+// ══════════════════════════════════════
+//  Google Sheets 설정
+//  가맹점 관리자가 Sheets에 데이터 입력 → 앱 자동 반영
+//
+//  시트 구조 (1행 = 헤더):
+//  id | name | cat | emoji | lat | lng | address | hours | storeId | wallet | menus_json
+//
+//  설정 방법:
+//  1. Google Sheets 파일 생성
+//  2. 파일 → 공유 → "링크가 있는 모든 사용자" 뷰어 권한
+//  3. 파일 ID를 아래 SHEET_ID에 입력
+//  4. 시트 이름을 SHEET_NAME에 입력 (기본: stores)
+// ══════════════════════════════════════
+// 반경 설정 (미터)
+const RADIUS_NEAR = 200;
+const RADIUS_FAR  = 500;
+
+// ── Haversine 거리 계산 ──
+function calcDist(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+}
+
+// ── API에서 가맹점 로드 ──
+async function loadStoresFromSheets() {
+  try {
+    const params = userLat && userLng
+      ? `?lat=${userLat}&lng=${userLng}&radius=${RADIUS_FAR}`
+      : '';
+    const res  = await fetch(`${API_BASE}/api/stores${params}`);
+    if (!res.ok) throw new Error('API 오류');
+    const data = await res.json();
+    return (data.stores || []).map(s => ({
+      id:      s.id,
+      name:    s.name,
+      cat:     s.cat,
+      emoji:   s.emoji,
+      lat:     parseFloat(s.lat),
+      lng:     parseFloat(s.lng),
+      address: s.address,
+      hours:   s.hours,
+      storeId: s.chain_store_id || 0,
+      wallet:  s.wallet_address,
+      menus:   [],
+    }));
+  } catch (e) {
+    console.warn('API 로드 실패, 샘플 데이터 사용:', e.message);
+    return getSampleStores();
+  }
+}
+
+// ── 샘플 가맹점 데이터 (Sheets 설정 전 데모용) ──
+function getSampleStores() {
+  return [
+    {
+      id:'wiz_gangnam', name:'위즈카페 강남점', cat:'☕ 카페', emoji:'☕',
+      lat:37.4979, lng:127.0276,
+      address:'서울 강남구 테헤란로 123', hours:'08:00–22:00',
+      storeId:1, wallet:'0x0000...', useLs:true, menus:[]
+    },
+    {
+      id:'bake_seocho', name:'베이크하우스 서초', cat:'🥐 베이커리', emoji:'🥐',
+      lat:37.4934, lng:127.0147,
+      address:'서울 서초구 서초대로 45', hours:'07:30–21:00',
+      storeId:2, wallet:'0x0000...', useLs:false,
+      menus:[
+        {id:201,name:'크루아상',cat:'🥐 빵',price:3800,emoji:'🥐',reward:1.5,soldout:false,desc:'버터 풍미 가득'},
+        {id:202,name:'아메리카노',cat:'☕ 음료',price:4000,emoji:'☕',reward:1,soldout:false,desc:'깔끔한 블랙'},
+        {id:203,name:'딸기케이크',cat:'🍰 케이크',price:7500,emoji:'🍓',reward:2,soldout:true,desc:'신선한 딸기'},
+      ]
+    },
+    {
+      id:'bbq_mapo', name:'마포 숯불갈비', cat:'🍖 한식', emoji:'🔥',
+      lat:37.5487, lng:126.9138,
+      address:'서울 마포구 어울마당로 77', hours:'11:30–23:00',
+      storeId:3, wallet:'0x0000...', useLs:false,
+      menus:[
+        {id:301,name:'돼지갈비 1인',cat:'🍖 고기',price:15000,emoji:'🥩',reward:2,soldout:false,desc:'국내산 한돈'},
+        {id:302,name:'소불고기',cat:'🍖 고기',price:18000,emoji:'🔥',reward:2.5,soldout:false,desc:'부드러운 한우'},
+        {id:303,name:'냉면',cat:'🍜 면',price:9000,emoji:'🍜',reward:1,soldout:false,desc:'시원한 평양냉면'},
+      ]
+    },
+    {
+      id:'book_hongdae', name:'홍대 북카페', cat:'📚 카페', emoji:'📚',
+      lat:37.5557, lng:126.9235,
+      address:'서울 마포구 홍익로 88', hours:'10:00–23:00',
+      storeId:4, wallet:'0x0000...', useLs:false,
+      menus:[
+        {id:401,name:'아이스 아메리카노',cat:'☕ 커피',price:4500,emoji:'🧊',reward:1,soldout:false,desc:'시원한 아이스'},
+        {id:402,name:'책읽기 패키지',cat:'📦 패키지',price:12000,emoji:'📖',reward:3,soldout:false,desc:'음료+3시간 좌석'},
+      ]
+    },
+  ];
+}
+
+// ── GPS 위치 가져오기 ──
+function getGPS() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('GPS를 지원하지 않는 브라우저입니다'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => {
+        // 위치 거부 시 서울 시청 기본값 (데모용)
+        console.warn('GPS 거부됨, 기본 위치 사용:', err.message);
+        resolve({ lat: 37.5665, lng: 126.9780, isDefault: true });
+      },
+      { timeout: 8000, maximumAge: 30000, enableHighAccuracy: true }
+    );
+  });
+}
+
+// ── 거리 기반 가맹점 필터 + 정렬 ──
+function filterNearbyStores(stores, lat, lng, radiusM) {
+  return stores
+    .map(s => ({
+      ...s,
+      dist: calcDist(lat, lng, s.lat, s.lng),
+      // 신호 강도 시뮬레이션 (실제는 BLE RSSI 값)
+      rssi: -50 - Math.floor(Math.random() * 30),
+    }))
+    .filter(s => s.dist <= radiusM)
+    .sort((a, b) => a.dist - b.dist)
+    .map(s => ({
+      ...s,
+      signal: s.dist <= 50  ? 4 :
+              s.dist <= 150 ? 3 :
+              s.dist <= 300 ? 2 : 1,
+    }));
+}
 
 /* ── UTILS ── */
 function goTo(id) {
@@ -741,46 +1036,102 @@ function ftime() {
 setInterval(()=>{ document.getElementById('sbTime').textContent=ftime(); },15000);
 document.getElementById('sbTime').textContent=ftime();
 
-/* ── SCREEN 1: SCAN ── */
-const SCAN_STEPS = [
-  '채널 초기화...', 'BLE 4.2 활성화...',
-  'iBeacon 신호 탐색...', 'UUID 필터: CRYPTOPOS...',
-  '신호 강도 분석...', '매장 정보 조회 중...',
-  `✅ ${STORES.length}개 매장 발견!`
-];
-function startScan() {
-  const btn=document.getElementById('scanBtn');
-  const st=document.getElementById('scanStatus');
-  btn.disabled=true; btn.textContent='스캔 중...';
-  let i=0;
-  const iv=setInterval(()=>{
-    st.textContent=SCAN_STEPS[i++];
-    if(i>=SCAN_STEPS.length){
-      clearInterval(iv);
-      setTimeout(()=>{
-        buildStoreList(); goTo('s-stores');
-        btn.disabled=false; btn.textContent='📡 다시 스캔';
-        st.textContent='대기 중...';
-      },600);
+/* ── SCREEN 1: SCAN (GPS + Sheets 통합) ── */
+async function startScan() {
+  const btn = document.getElementById('scanBtn');
+  const st  = document.getElementById('scanStatus');
+  btn.disabled = true;
+  btn.textContent = '스캔 중...';
+
+  const steps = [
+    { msg: 'GPS 위치 확인 중...', fn: async () => {
+        const pos = await getGPS();
+        userLat = pos.lat; userLng = pos.lng;
+        return pos.isDefault ? '📍 기본 위치 사용 중 (GPS 거부됨)' : `📍 위치 확인: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`;
+    }},
+    { msg: '가맹점 데이터 로드 중...', fn: async () => {
+        allStores = await loadStoresFromSheets();
+        return `📋 총 ${allStores.length}개 가맹점 로드됨`;
+    }},
+    { msg: 'BLE 비콘 탐색...', fn: async () => {
+        await new Promise(r => setTimeout(r, 500));
+        return 'UUID 필터: CRYPTOPOS...';
+    }},
+    { msg: '주변 가맹점 계산 중...', fn: async () => {
+        const nearby = filterNearbyStores(allStores, userLat, userLng, RADIUS_FAR);
+        return `✅ ${nearby.length}개 가맹점 발견! (${RADIUS_FAR}m 이내)`;
+    }},
+  ];
+
+  let nearbyStores = [];
+
+  for (const step of steps) {
+    st.textContent = step.msg;
+    try {
+      const result = await step.fn();
+      st.textContent = result;
+      await new Promise(r => setTimeout(r, 400));
+    } catch (e) {
+      st.textContent = '⚠️ ' + e.message;
+      await new Promise(r => setTimeout(r, 800));
     }
-  },380);
+  }
+
+  nearbyStores = filterNearbyStores(allStores, userLat, userLng, RADIUS_FAR);
+
+  // STORES 전역 업데이트 (buildStoreList에서 사용)
+  window.STORES = nearbyStores;
+
+  setTimeout(() => {
+    buildStoreList(nearbyStores);
+    goTo('s-stores');
+    btn.disabled = false;
+    btn.textContent = '📡 다시 스캔';
+    st.textContent = '대기 중...';
+  }, 400);
 }
 
 /* ── SCREEN 2: STORE LIST ── */
 function sigHtml(n){
   return `<div class="sig-bars">${[1,2,3,4].map(i=>`<div class="sbar ${i<=n?'on':''}"></div>`).join('')}</div>`;
 }
-function buildStoreList() {
-  document.getElementById('storeCount').textContent=`${STORES.length}개`;
-  const nearby=STORES.filter(s=>s.dist<=50);
-  const far=STORES.filter(s=>s.dist>50);
-  let html='';
-  if(nearby.length){ html+=`<div class="section-sep">📍 매우 가까운 매장 (50m 이내)</div>`; nearby.forEach(s=>{html+=scCard(s,true);}); }
-  if(far.length){ html+=`<div class="section-sep">📡 비콘 감지 매장</div>`; far.forEach(s=>{html+=scCard(s,false);}); }
-  document.getElementById('storesList').innerHTML=html;
+
+function buildStoreList(stores) {
+  stores = stores || window.STORES || [];
+  const locText = (userLat && !userLat.isDefault)
+    ? `GPS 위치 기준 · ${RADIUS_FAR}m 이내`
+    : '서울 기본 위치 기준';
+
+  document.getElementById('storeCount').textContent = `${stores.length}개`;
+
+  // 헤더 설명 업데이트
+  document.querySelector('.stores-desc').textContent = locText;
+
+  const nearby = stores.filter(s => s.dist <= RADIUS_NEAR);
+  const far    = stores.filter(s => s.dist > RADIUS_NEAR);
+
+  let html = '';
+  if (!stores.length) {
+    html = `<div style="text-align:center;padding:60px 24px;color:var(--muted)">
+      <div style="font-size:48px;margin-bottom:16px">📍</div>
+      <div style="font-size:16px;font-weight:600;margin-bottom:8px">주변 가맹점 없음</div>
+      <div style="font-size:13px">${RADIUS_FAR}m 이내에 등록된 가맹점이 없습니다</div>
+    </div>`;
+  } else {
+    if (nearby.length) {
+      html += `<div class="section-sep">📍 가까운 가맹점 (${RADIUS_NEAR}m 이내)</div>`;
+      nearby.forEach(s => { html += scCard(s, true); });
+    }
+    if (far.length) {
+      html += `<div class="section-sep">🗺 주변 가맹점 (${RADIUS_NEAR}–${RADIUS_FAR}m)</div>`;
+      far.forEach(s => { html += scCard(s, false); });
+    }
+  }
+  document.getElementById('storesList').innerHTML = html;
 }
-function scCard(s,near){
-  const d=s.dist<1000?`${s.dist}m`:`${(s.dist/1000).toFixed(1)}km`;
+
+function scCard(s, near){
+  const d = s.dist < 1000 ? `${s.dist}m` : `${(s.dist/1000).toFixed(1)}km`;
   return `<div class="store-card ${near?'beacon-near':''}" onclick="openStore('${s.id}')">
     <div class="sc-inner">
       <div class="sc-thumb">${s.emoji}</div>
@@ -791,7 +1142,7 @@ function scCard(s,near){
         </div>
         <div class="sc-cat">${s.cat}</div>
         <div class="sc-meta">
-          <div class="sc-meta-item">📍 <span>${s.address.slice(0,10)}...</span></div>
+          <div class="sc-meta-item">📍 <span>${s.address.slice(0,12)}...</span></div>
           <div class="sc-meta-item">🕐 <span>${s.hours}</span></div>
           <div class="sc-meta-item">${sigHtml(s.signal)}</div>
         </div>
@@ -799,36 +1150,50 @@ function scCard(s,near){
     </div>
     <div class="sc-dist ${near?'':'far'}">${d}</div>
     <div class="sc-bottom">
-      <div class="sc-token">🪙 WIZ 토큰 <strong>적립 가능</strong></div>
+      <div class="sc-token">🪙 OZ 토큰 <strong>적립 가능</strong></div>
       <div class="sc-arrow">→</div>
     </div>
   </div>`;
 }
 
 /* ── SCREEN 3: DETAIL ── */
-function openStore(id) {
-  currentStore=STORES.find(s=>s.id===id); if(!currentStore) return;
-  cart={};
-  if(currentStore.useLs){
-    menus=JSON.parse(localStorage.getItem(MENU_KEY)||'[]');
-    if(!menus.length) menus=[
-      {id:1,name:'아메리카노',cat:'☕ 커피',price:4500,emoji:'☕',reward:1,soldout:false,desc:'진한 에스프레소와 물의 조화'},
-      {id:2,name:'카페라떼',cat:'☕ 커피',price:5000,emoji:'🥛',reward:1.5,soldout:false,desc:'부드러운 우유 라떼'},
-      {id:3,name:'바닐라라떼',cat:'☕ 커피',price:5500,emoji:'🍶',reward:2,soldout:false,desc:'달콤한 바닐라 시럽'},
-      {id:4,name:'녹차라떼',cat:'🍵 논커피',price:5500,emoji:'🍵',reward:1,soldout:false,desc:'제주산 녹차'},
-      {id:5,name:'딸기스무디',cat:'🥤 스무디',price:6500,emoji:'🍓',reward:2,soldout:false,desc:'신선한 딸기'},
-      {id:6,name:'치즈케이크',cat:'🍰 디저트',price:7000,emoji:'🍰',reward:3,soldout:false,desc:'뉴욕 스타일'},
-    ];
-  } else { menus=currentStore.menus||[]; }
+async function openStore(id) {
+  currentStore = (window.STORES || []).find(s => String(s.id) === String(id));
+  if (!currentStore) return;
+  cart = {};
 
-  document.getElementById('dEmoji').textContent=currentStore.emoji;
-  document.getElementById('dName').textContent=currentStore.name;
-  document.getElementById('dCat').textContent=`${currentStore.cat} · ${currentStore.address.slice(0,8)}`;
-  document.getElementById('dMenuCnt').textContent=menus.filter(m=>!m.soldout).length;
-  document.getElementById('dDist').textContent=currentStore.dist+'m';
-  document.getElementById('dRssi').textContent=currentStore.rssi+'dB';
+  // API에서 메뉴 로드
+  try {
+    const res  = await fetch(`${API_BASE}/api/stores/${id}`);
+    const data = await res.json();
+    menus = (data.store?.menus || []).map(m => ({
+      id:      m.id,
+      name:    m.name,
+      cat:     m.cat,
+      price:   m.price,
+      emoji:   m.emoji || '🍽',
+      reward:  parseFloat(m.reward) || 1,
+      soldout: !!m.soldout,
+      desc:    m.description || '',
+    }));
+  } catch {
+    menus = currentStore.menus || [];
+  }
 
-  currentCat='all';
+  if (!menus.length) menus = [
+    {id:1,name:'아메리카노',cat:'☕ 커피',price:4500,emoji:'☕',reward:1,soldout:false,desc:'진한 에스프레소'},
+    {id:2,name:'카페라떼',cat:'☕ 커피',price:5000,emoji:'🥛',reward:1.5,soldout:false,desc:'부드러운 라떼'},
+    {id:3,name:'치즈케이크',cat:'🍰 디저트',price:7000,emoji:'🍰',reward:3,soldout:false,desc:'뉴욕 스타일'},
+  ];
+
+  document.getElementById('dEmoji').textContent   = currentStore.emoji;
+  document.getElementById('dName').textContent    = currentStore.name;
+  document.getElementById('dCat').textContent     = `${currentStore.cat} · ${currentStore.address?.slice(0,10) || ''}`;
+  document.getElementById('dMenuCnt').textContent = menus.filter(m=>!m.soldout).length;
+  document.getElementById('dDist').textContent    = (currentStore.dist || '-') + 'm';
+  document.getElementById('dRssi').textContent    = (currentStore.rssi || '-75') + 'dB';
+
+  currentCat = 'all';
   renderCatTabs(); renderMenuList(); updateCartBar();
   goTo('s-detail');
 }
