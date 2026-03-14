@@ -474,23 +474,24 @@ async function doConnect(provider){
     ethSigner=await ethProvider.getSigner();
     walletAddr=await ethSigner.getAddress();
     walletConn=true;
-    // WizChain 네트워크 전환
+    // WizChain 네트워크 전환 (실패해도 진행)
     try{
       await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:WIZCHAIN.chainIdHex}]});
     }catch(e){
       if(e.code===4902||e.code===-32603){
-        await provider.request({method:'wallet_addEthereumChain',params:[{
-          chainId:WIZCHAIN.chainIdHex,chainName:WIZCHAIN.chainName,
-          nativeCurrency:{name:'WCN',symbol:'WCN',decimals:18},
-          rpcUrls:[WIZCHAIN.rpcUrl],blockExplorerUrls:['https://explorer.wizclass.net']
-        }]});
+        try{
+          await provider.request({method:'wallet_addEthereumChain',params:[{
+            chainId:WIZCHAIN.chainIdHex,chainName:WIZCHAIN.chainName,
+            nativeCurrency:{name:'WCN',symbol:'WCN',decimals:18},
+            rpcUrls:[WIZCHAIN.rpcUrl],blockExplorerUrls:['https://explorer.wizclass.net']
+          }]});
+        }catch(e2){ /* 네트워크 추가 거부해도 계속 진행 */ }
       }
+      // 네트워크 전환 거부해도 계속 진행
     }
-    document.getElementById('walletAddrDisplay').textContent=walletAddr.slice(0,6)+'...'+walletAddr.slice(-4);
-    document.getElementById('walletConnected').style.display='block';
-    document.getElementById('walletButtons').style.display='none';
-    document.getElementById('enterAppBtn').style.display='block';
+    // 연결 완료 → 즉시 다음 화면으로 이동
     localStorage.setItem('w3pos_addr',walletAddr);
+    enterApp();
   }catch(e){
     const msg=e.code===4001?'연결을 취소했습니다.':(e.message||String(e));
     errEl.textContent='연결 실패: '+msg;
@@ -502,9 +503,9 @@ async function connectWalletQuick(){
   const p=await getEthereum();
   if(!p){
     // 삼성 브라우저 등 일반 브라우저 → MetaMask 딥링크로 앱 실행
-    const url=location.href;
-    const deeplink='https://metamask.app.link/dapp/'+location.host+location.pathname+(location.search||'');
-    window.location.href=deeplink;
+    // MetaMask 딥링크: 현재 URL 그대로 전달
+    const _url=location.href.replace(/^https?:\/\//,'');
+    window.location.href='https://metamask.app.link/dapp/'+_url;
     return;
   }
   await doConnect(p);
@@ -520,7 +521,7 @@ async function connectWallet(type){
     await doConnect(p);
   }else if(type==='walletconnect'){
     if(!p){
-      window.location.href='https://metamask.app.link/dapp/'+location.host+location.pathname;
+      const _u=location.href.replace(/^https?:\/\//,''); window.location.href='https://metamask.app.link/dapp/'+_u;
       return;
     }
     await doConnect(p);
@@ -652,7 +653,7 @@ applyTheme();
 applyLang();
 (function(){
   const saved=localStorage.getItem('w3pos_addr');
-  if(saved&&window.ethereum){ window.ethereum.request({method:'eth_accounts'}).then(a=>{ if(a.length){ walletAddr=a[0]; walletConn=true; document.getElementById('walletAddrDisplay').textContent=walletAddr.slice(0,6)+'...'+walletAddr.slice(-4); document.getElementById('walletConnected').style.display='block'; document.getElementById('walletButtons').style.display='none'; document.getElementById('enterAppBtn').style.display='block'; } }); }
+  if(saved&&window.ethereum){ window.ethereum.request({method:'eth_accounts'}).then(a=>{ if(a.length){ walletAddr=a[0]; walletConn=true; enterApp(); } }); }
 })();
 </script>
 </body>
