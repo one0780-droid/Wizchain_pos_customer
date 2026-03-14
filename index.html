@@ -501,9 +501,10 @@ async function doConnect(provider){
 async function connectWalletQuick(){
   const p=await getEthereum();
   if(!p){
-    const errEl=document.getElementById('walletError');
-    errEl.textContent='MetaMask를 감지하지 못했습니다. MetaMask 앱 내장 브라우저에서 열거나 확장 프로그램 설치 후 새로고침하세요.';
-    errEl.style.display='block';
+    // 삼성 브라우저 등 일반 브라우저 → MetaMask 딥링크로 앱 실행
+    const url=location.href;
+    const deeplink='https://metamask.app.link/dapp/'+location.host+location.pathname+(location.search||'');
+    window.location.href=deeplink;
     return;
   }
   await doConnect(p);
@@ -512,10 +513,16 @@ async function connectWalletQuick(){
 async function connectWallet(type){
   const p=await getEthereum();
   if(type==='trustwallet'){
-    if(!p){window.open('https://link.trustwallet.com/open_url?coin_id=60&url='+encodeURIComponent(location.href),'_blank');return;}
+    if(!p){
+      window.location.href='https://link.trustwallet.com/open_url?coin_id=60&url='+encodeURIComponent(location.href);
+      return;
+    }
     await doConnect(p);
   }else if(type==='walletconnect'){
-    if(!p){window.open('https://metamask.app.link/dapp/'+location.host+location.pathname,'_blank');return;}
+    if(!p){
+      window.location.href='https://metamask.app.link/dapp/'+location.host+location.pathname;
+      return;
+    }
     await doConnect(p);
   }else{
     await connectWalletQuick();
