@@ -378,7 +378,7 @@ body{max-width:430px;margin:0 auto;min-height:100%;position:relative}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 <script>
 // ── 설정 ──
-const API_BASE = 'http://15.164.93.243';
+const API_BASE = '';  // 서버 주소 (없으면 샘플 데이터 사용)
 const WIZCHAIN = { chainId:10243, chainIdHex:'0x27F3', chainName:'WizChain', rpcUrl:'https://rpc.wizclass.net', symbol:'WCN', explorer:'https://explorer.wizchain.net' };
 
 // ── 상태 ──
@@ -472,10 +472,14 @@ async function startScan(){
   userLat=pos.lat; userLng=pos.lng;
   sv.textContent='매장 검색 중...';
   try{
+    if(!API_BASE) throw new Error('no server');
     const r=await Promise.race([fetch(`${API_BASE}/api/stores?lat=${userLat}&lng=${userLng}&radius=500`),new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),3000))]);
     const d=await r.json();
     allStores=(d.stores||[]).map(s=>({...s,lat:parseFloat(s.lat),lng:parseFloat(s.lng),dist:dist(userLat,userLng,parseFloat(s.lat),parseFloat(s.lng))}));
-  }catch{ allStores=getSampleStores().map(s=>({...s,dist:dist(userLat,userLng,s.lat,s.lng)})); }
+    if(!allStores.length) allStores=getSampleStores().map(s=>({...s,dist:dist(userLat,userLng,s.lat,s.lng)}));
+  }catch{
+    allStores=getSampleStores().map(s=>({...s,dist:dist(userLat,userLng,s.lat,s.lng)}));
+  }
   allStores.sort((a,b)=>a.dist-b.dist);
   renderStores();
   goTo('s-stores');
@@ -488,12 +492,18 @@ function getSampleStores(){ return [
 ]; }
 function renderStores(){
   const list=document.getElementById('storesList'), cnt=document.getElementById('storeCount');
-  const near=allStores.filter(s=>s.dist<=200), far=allStores.filter(s=>s.dist>200&&s.dist<=500);
   cnt.textContent=allStores.length+'개';
   let html='';
-  if(near.length){ html+=`<div class="section-sep">200m 이내</div>`; near.forEach(s=>html+=storeCard(s,true)); }
-  if(far.length){ html+=`<div class="section-sep">200m ~ 500m</div>`; far.forEach(s=>html+=storeCard(s,false)); }
-  if(!allStores.length) html='<div style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">주변에 매장이 없습니다</div>';
+  if(!allStores.length){
+    html='<div style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">주변에 매장이 없습니다</div>';
+    list.innerHTML=html; return;
+  }
+  const near=allStores.filter(s=>s.dist<=500);
+  const far=allStores.filter(s=>s.dist>500);
+  if(near.length){ html+=`<div class="section-sep">📍 가까운 매장</div>`; near.forEach(s=>html+=storeCard(s,s.dist<=200)); }
+  if(far.length){ html+=`<div class="section-sep">📍 더 먼 매장</div>`; far.forEach(s=>html+=storeCard(s,false)); }
+  // 거리 계산 안됐거나 전부 500m 초과면 그냥 다 보여주기
+  if(!near.length&&!far.length){ allStores.forEach(s=>html+=storeCard(s,false)); }
   list.innerHTML=html;
 }
 function storeCard(s,near){ return `<div class="store-card ${near?'near':''}" onclick="openStore('${s.id}')"><div class="sc-inner"><div class="sc-thumb">${s.emoji}</div><div class="sc-info"><div class="sc-name">${s.name}</div><div class="sc-cat">${s.cat}</div><div class="sc-addr">${s.address||''}</div><div class="sc-dist ${s.dist>200?'far':''}">${s.dist}m</div></div></div><div class="sc-bottom"><div class="sc-reward">OZ 리워드 <strong>적립</strong></div><div class="sc-arrow">→</div></div></div>`; }
@@ -504,6 +514,7 @@ async function openStore(id){
   if(!currentStore) return;
   cart={};
   try{
+    if(!API_BASE) throw new Error('no server');
     const r=await Promise.race([fetch(`${API_BASE}/api/stores/${id}`),new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),3000))]);
     const d=await r.json();
     menus=(d.store?.menus||[]).map(m=>({id:m.id,name:m.name,cat:m.cat,price:m.price,emoji:m.emoji||'🍽',reward:parseFloat(m.reward)||1,soldout:!!m.soldout,desc:m.description||''}));
