@@ -36,7 +36,7 @@ body{max-width:430px;margin:0 auto;min-height:100%;position:relative}
 /* SCREENS */
 .screen{display:none;min-height:100vh;flex-direction:column}
 .screen.active{display:flex}
-#s-wallet{display:flex}
+#s-wallet{display:flex !important}
 
 /* ── WALLET SCREEN ── */
 .wallet-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 24px}
@@ -226,7 +226,7 @@ body{max-width:430px;margin:0 auto;min-height:100%;position:relative}
 <div class="overlay-bg" id="settingsOverlay" onclick="closeSettings()"></div>
 
 <!-- ══ WALLET SCREEN ══ -->
-<div class="screen" id="s-wallet">
+<div class="screen" id="s-wallet" style="display:flex;">
   <div class="wallet-wrap">
     <div class="logo-title"><span style="font-family:'Outfit',sans-serif;font-weight:900;font-size:52px;letter-spacing:-1px;color:var(--text);">Wiz<span style="color:var(--accent);">Pay</span></span></div>
     <div class="logo-sub">더 편한 글로벌 올인원 페이</div>
@@ -376,7 +376,13 @@ body{max-width:430px;margin:0 auto;min-height:100%;position:relative}
   <button class="suc-back" onclick="closeSuc()">← 메뉴로 돌아가기</button>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js" onerror="console.warn('ethers load failed')"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<script>
+// ethers 로드 실패 시 fallback
+if(typeof ethers==='undefined'){
+  document.write('<script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"><\/script>');
+}
+</script>
 <script>
 // ── 설정 ──
 const API_BASE = '';  // 서버 주소 (없으면 샘플 데이터 사용)
@@ -430,59 +436,90 @@ function closeSettings(){
 
 // ── 화면 전환 ──
 function goTo(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.screen').forEach(s=>{
+    s.classList.remove('active');
+    s.style.display='';  // inline style 제거 → CSS display:none 적용
+  });
+  const el=document.getElementById(id);
+  el.classList.add('active');
+  el.style.display='';  // active CSS가 담당
   window.scrollTo(0,0);
 }
 
 // ── 지갑 연결 ──
 // ethereum 감지 (inject 지연 대응)
+// ethereum 감지 (최대 3초 대기)
 function getEthereum(){
   return new Promise(resolve=>{
     if(window.ethereum) return resolve(window.ethereum);
     if(window.web3?.currentProvider) return resolve(window.web3.currentProvider);
     let tries=0;
-    const check=setInterval(()=>{
-      if(window.ethereum){ clearInterval(check); resolve(window.ethereum); }
-      else if(window.web3?.currentProvider){ clearInterval(check); resolve(window.web3.currentProvider); }
-      else if(++tries>30){ clearInterval(check); resolve(null); }
+    const t=setInterval(()=>{
+      if(window.ethereum){clearInterval(t);resolve(window.ethereum);}
+      else if(window.web3?.currentProvider){clearInterval(t);resolve(window.web3.currentProvider);}
+      else if(++tries>30){clearInterval(t);resolve(null);}
     },100);
   });
 }
 
-async function connectWalletQuick(){
+// 지갑 연결 공통 함수
+async function doConnect(provider){
   const errEl=document.getElementById('walletError');
-  errEl.style.display='none';
-  errEl.textContent='';
+  errEl.style.display='none'; errEl.textContent='';
   try{
-    const ethereum=await getEthereum();
-    const finalEthereum = ethereum || window.ethereum;
-    if(!finalEthereum){
-      errEl.textContent='지갑을 감지하지 못했습니다. MetaMask 앱 → DApp 브라우저에서 열거나, 새로고침 후 다시 시도하세요.';
-      errEl.style.display='block';
-      return;
-    }
-    ethProvider=new ethers.BrowserProvider(finalEthereum);
+    // ethers 로드 확인
+    if(typeof ethers==='undefined') throw new Error('ethers 라이브러리 로드 실패. 새로고침 후 다시 시도하세요.');
+    ethProvider=new ethers.BrowserProvider(provider);
     await ethProvider.send('eth_requestAccounts',[]);
     ethSigner=await ethProvider.getSigner();
     walletAddr=await ethSigner.getAddress();
     walletConn=true;
-    try{ await finalEthereum.request({method:'wallet_switchEthereumChain',params:[{chainId:WIZCHAIN.chainIdHex}]}); }
-    catch(e){ if(e.code===4902) await finalEthereum.request({method:'wallet_addEthereumChain',params:[{chainId:WIZCHAIN.chainIdHex,chainName:WIZCHAIN.chainName,nativeCurrency:{name:'WCN',symbol:'WCN',decimals:18},rpcUrls:[WIZCHAIN.rpcUrl]}]}); }
+    // WizChain 네트워크 전환
+    try{
+      await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:WIZCHAIN.chainIdHex}]});
+    }catch(e){
+      if(e.code===4902||e.code===-32603){
+        await provider.request({method:'wallet_addEthereumChain',params:[{
+          chainId:WIZCHAIN.chainIdHex,chainName:WIZCHAIN.chainName,
+          nativeCurrency:{name:'WCN',symbol:'WCN',decimals:18},
+          rpcUrls:[WIZCHAIN.rpcUrl],blockExplorerUrls:['https://explorer.wizclass.net']
+        }]});
+      }
+    }
     document.getElementById('walletAddrDisplay').textContent=walletAddr.slice(0,6)+'...'+walletAddr.slice(-4);
     document.getElementById('walletConnected').style.display='block';
     document.getElementById('walletButtons').style.display='none';
     document.getElementById('enterAppBtn').style.display='block';
     localStorage.setItem('w3pos_addr',walletAddr);
   }catch(e){
-    if(e.code===4001){ errEl.textContent='연결을 취소했습니다.'; }
-    else{ errEl.textContent='연결 실패: '+(e.message||e); }
+    const msg=e.code===4001?'연결을 취소했습니다.':(e.message||String(e));
+    errEl.textContent='연결 실패: '+msg;
     errEl.style.display='block';
   }
 }
+
+async function connectWalletQuick(){
+  const p=await getEthereum();
+  if(!p){
+    const errEl=document.getElementById('walletError');
+    errEl.textContent='MetaMask를 감지하지 못했습니다. MetaMask 앱 내장 브라우저에서 열거나 확장 프로그램 설치 후 새로고침하세요.';
+    errEl.style.display='block';
+    return;
+  }
+  await doConnect(p);
+}
+
 async function connectWallet(type){
-  if(type==='trustwallet'&&!window.ethereum){ window.open('https://trustwallet.com/download', '_blank'); return; }
-  connectWalletQuick();
+  const p=await getEthereum();
+  if(type==='trustwallet'){
+    if(!p){window.open('https://link.trustwallet.com/open_url?coin_id=60&url='+encodeURIComponent(location.href),'_blank');return;}
+    await doConnect(p);
+  }else if(type==='walletconnect'){
+    if(!p){window.open('https://metamask.app.link/dapp/'+location.host+location.pathname,'_blank');return;}
+    await doConnect(p);
+  }else{
+    await connectWalletQuick();
+  }
 }
 function enterApp(guest=false){ if(guest){ walletConn=false; walletAddr=''; } goTo('s-splash'); }
 
