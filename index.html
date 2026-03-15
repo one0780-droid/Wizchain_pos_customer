@@ -309,10 +309,6 @@ body{max-width:430px;margin:0 auto}
         <span class="wb-balance-val" id="wbOZ"><span class="wb-loading">···</span></span>
         <span class="wb-balance-sym">OZ</span>
       </div>
-      <div class="wb-balance-item">
-        <span class="wb-balance-val" id="wbWCN"><span class="wb-loading">···</span></span>
-        <span class="wb-balance-sym">WCN</span>
-      </div>
     </div>
   </div>
 
@@ -351,10 +347,6 @@ body{max-width:430px;margin:0 auto}
       <div class="wb-balance-item">
         <span class="wb-balance-val" id="wbOZ2"><span class="wb-loading">···</span></span>
         <span class="wb-balance-sym">OZ</span>
-      </div>
-      <div class="wb-balance-item">
-        <span class="wb-balance-val" id="wbWCN2"><span class="wb-loading">···</span></span>
-        <span class="wb-balance-sym">WCN</span>
       </div>
     </div>
   </div>
@@ -468,7 +460,7 @@ async function checkAndShowChain(addr, barSuffix, walletType) {
 
   try {
     const chainId = await window.ethereum.request({method:'eth_chainId'});
-    const isWizChain = chainId === '0x27F3';
+    const isWizChain = chainId === '0x2803';
     const chainEl = document.getElementById('wbChain'+barSuffix);
 
     if(isWizChain) {
@@ -495,7 +487,7 @@ async function checkAndShowChain(addr, barSuffix, walletType) {
         chainEl.style.color = '#e03e1a';
       }
       // 잔액 표시 불가
-      ['wbUSDW','wbOZ','wbWCN'].forEach(id=>{
+      ['wbUSDW','wbOZ'].forEach(id=>{
         const el=document.getElementById(id+barSuffix);
         if(el) el.textContent = '--';
       });
@@ -526,12 +518,12 @@ function showChainSwitchAlert(suffix) {
 
 async function switchToWizChain() {
   try {
-    await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x27F3'}]});
+    await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x2803'}]});
   } catch(e) {
     if(e.code===4902||e.code===-32603){
       try {
         await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
-          chainId:'0x27F3', chainName:'WizChain',
+          chainId:'0x2803', chainName:'WizChain',
           nativeCurrency:{name:'WCN',symbol:'WCN',decimals:18},
           rpcUrls:['https://rpc.wizclass.net']
         }]});
@@ -544,10 +536,7 @@ async function loadWalletBalances(addr, suffix) {
   try {
     if(typeof ethers==='undefined') return;
     const provider = new ethers.BrowserProvider(window.ethereum);
-    // WCN 네이티브
-    const wcnBal = await provider.getBalance(addr);
-    const wcnEl = document.getElementById('wbWCN'+suffix);
-    if(wcnEl) wcnEl.textContent = parseFloat(ethers.formatEther(wcnBal)).toFixed(2);
+    
     // USDW
     const usdwC = new ethers.Contract(
       '0x1234B0663b82b260DebEe961C2b5DBfC79bADdBd',
@@ -560,7 +549,7 @@ async function loadWalletBalances(addr, suffix) {
     const ozEl = document.getElementById('wbOZ'+suffix);
     if(ozEl) ozEl.textContent = '0.00';
   } catch(e) {
-    ['wbUSDW','wbOZ','wbWCN'].forEach(id=>{
+    ['wbUSDW','wbOZ'].forEach(id=>{
       const el=document.getElementById(id+suffix); if(el) el.textContent='--';
     });
   }
@@ -586,7 +575,7 @@ async function showWalletBar(addr, walletType) {
   try {
     const chainId = await window.ethereum.request({method:'eth_chainId'});
     const chainEl = document.getElementById('wbChain');
-    if(chainEl) chainEl.textContent = chainId==='0x27F3' ? 'WizChain' : 'Chain '+parseInt(chainId,16);
+    if(chainEl) chainEl.textContent = chainId==='0x2803' ? 'WizChain' : 'Chain '+parseInt(chainId,16);
   } catch(_){}
 
   // 잔액 로드
@@ -599,9 +588,6 @@ async function loadBalances(addr) {
     const provider = new ethers.BrowserProvider(window.ethereum);
 
     // WCN (네이티브)
-    const wcnBal = await provider.getBalance(addr);
-    const wcnEl = document.getElementById('wbWCN');
-    if(wcnEl) wcnEl.textContent = parseFloat(ethers.formatEther(wcnBal)).toFixed(2);
 
     // USDW (ERC-20)
     const usdwContract = new ethers.Contract(USDW_ADDR, USDW_ABI, provider);
@@ -614,7 +600,7 @@ async function loadBalances(addr) {
     if(ozEl) ozEl.textContent = '0.00';
 
   } catch(e) {
-    ['wbUSDW','wbOZ','wbWCN'].forEach(id=>{
+    ['wbUSDW','wbOZ'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.textContent='--';
     });
   }
@@ -669,10 +655,10 @@ async function connectWallet(provider) {
     ethSigner   = await ethProvider.getSigner();
     walletAddr  = await ethSigner.getAddress();
     try {
-      await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x27F3'}]});
+      await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x2803'}]});
     } catch(e) {
       if(e.code===4902||e.code===-32603){
-        try { await provider.request({method:'wallet_addEthereumChain',params:[{chainId:'0x27F3',chainName:'WizChain',nativeCurrency:{name:'WCN',symbol:'WCN',decimals:18},rpcUrls:['https://rpc.wizclass.net']}]}); } catch(_){}
+        try { await provider.request({method:'wallet_addEthereumChain',params:[{chainId:'0x2803',chainName:'WizChain',nativeCurrency:{name:'WCN',symbol:'WCN',decimals:18},rpcUrls:['https://rpc.wizclass.net']}]}); } catch(_){}
       }
     }
     localStorage.setItem('wizpay_addr', walletAddr);
