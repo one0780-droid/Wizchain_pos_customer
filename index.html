@@ -257,16 +257,356 @@ body { max-width:430px; margin:0 auto; position:relative; overflow-x:hidden; }
 .done-back-btn { padding:15px 40px; background:var(--surface); border:2px solid var(--border);
   border-radius:30px; color:var(--text); font-size:16px; font-weight:700;
   cursor:pointer; font-family:'Noto Sans KR',sans-serif; }
+
+
+  .settings-btn{display:flex;align-items:center;gap:7px;background:transparent;border:2px solid var(--border);border-radius:22px;padding:7px 14px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap}
+  .settings-btn:active{opacity:.75}
+  .s-arrow{font-size:9px;color:var(--muted);transition:transform .2s}
+  .settings-btn.open .s-arrow{transform:rotate(180deg)}
+  .settings-menu{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:2px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.15);min-width:180px;z-index:1100}
+  .settings-menu.open{display:block}
+  .s-section-title{padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .s-item{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border)}
+  .s-item:last-child{border-bottom:none}
+  .s-item:active{opacity:.7}
+  .s-item.danger{color:var(--warn)}
+  .s-check{color:var(--accent);font-size:15px}
+  .s-divider{height:2px;background:var(--border)}
+
+
+  /* ---- 설정 버튼 ---- */
+  .cfg-wrap{position:absolute;top:16px;right:16px;z-index:100}
+  .cfg-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);border:2px solid var(--border);border-radius:24px;padding:9px 18px;cursor:pointer;font-size:15px;font-weight:700;color:var(--text);line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .cfg-btn:active{opacity:.7}
+  .cfg-menu{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:2px solid var(--border);border-radius:14px;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:200;overflow:hidden}
+  .cfg-menu.on{display:block}
+  .cfg-sec{padding:8px 14px 4px;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .cfg-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border)}
+  .cfg-row:last-child{border-bottom:none}
+  .cfg-row:active{opacity:.7}
+  .cfg-row.red{color:var(--warn)}
+  .cfg-chk{color:var(--accent);font-weight:900}
+  .cfg-ov{display:none;position:fixed;inset:0;z-index:99}
+  .cfg-ov.on{display:block}
 </style>
+<script>
+/* ==== 설정 기능 ==== */
+(function(){
+  var lang  = localStorage.getItem('cfg_lang')  || 'ko';
+  var theme = localStorage.getItem('cfg_theme') || 'light';
+
+  var I18N = {
+    ko:{ tagline:'더 편한 글로벌 올인원 페이', mm:'브라우저 익스텐션 / 모바일 앱', tw:'모바일 앱으로 연결', dex:'WizChain 탈중앙화 거래소', guest:'지갑 없이 둘러보기' },
+    en:{ tagline:'The Global All-in-One Pay', mm:'Browser Extension / Mobile App', tw:'Connect Mobile App', dex:'WizChain DEX Exchange', guest:'Browse without Wallet' },
+    zh:{ tagline:'全球一站式支付', mm:'浏览器扩展 / 移动应用', tw:'通过移动应用连接', dex:'WizChain去中心化交易所', guest:'无钱包浏览' },
+  };
+
+  function applyLang(l) {
+    lang = l; localStorage.setItem('cfg_lang', l);
+    var flags = {ko:'🇰🇷', en:'🇺🇸', zh:'🇨🇳'};
+    var el = document.getElementById('cfgLang');
+    if(el) el.textContent = flags[l];
+    ['lk','le','lz'].forEach(function(id,i){
+      var e = document.getElementById(id);
+      if(e) e.style.display = ['ko','en','zh'][i]===l ? 'inline':'none';
+    });
+    var t = I18N[l]||I18N.ko;
+    var map = {'i-tagline':t.tagline,'i-mm':t.mm,'i-tw':t.tw,'i-dex':t.dex,'i-guest':t.guest};
+    Object.keys(map).forEach(function(id){
+      var e = document.getElementById(id); if(e) e.textContent = map[id];
+    });
+  }
+
+  function applyTheme(m) {
+    theme = m; localStorage.setItem('cfg_theme', m);
+    var s = document.getElementById('cfg-theme-style');
+    if(!s){ s=document.createElement('style'); s.id='cfg-theme-style'; document.head.appendChild(s); }
+    s.textContent = m==='dark'
+      ? 'body,html{background:#111 !important;color:#f0f0f0 !important}.page{background:#111 !important}.w-btn{background:#1e1e1e !important;border-color:#333 !important}.w-btn-name{color:#f0f0f0 !important}.w-btn-desc{color:#999 !important}.logo{color:#f0f0f0 !important}.tagline{color:#999 !important}.wiz-badge{border-color:#333 !important}.wiz-by{color:#999 !important}.net-note{color:#999 !important}.guest-btn{color:#999 !important;border-color:#333 !important}.cfg-btn{background:#1e1e1e !important;border-color:#333 !important;color:#f0f0f0 !important}.cfg-menu{background:#1e1e1e !important;border-color:#333 !important}.cfg-row{color:#f0f0f0 !important;border-color:#333 !important}.top-bar,.store-card,.menu-row,.cart-bar,.pay-section,.app-header,.tab-bar{background:#1e1e1e !important;border-color:#333 !important}.top-title,.menu-name,.cart-total,.pay-total-amount,.sc-name,.mc-name{color:#f0f0f0 !important}'
+      : '';
+    var icon = document.getElementById('cfgThemeIcon');
+    if(icon) icon.textContent = m==='dark'?'🌙':'☀️';
+    ['tl','td'].forEach(function(id,i){
+      var e=document.getElementById(id);
+      if(e) e.style.display=['light','dark'][i]===m?'inline':'none';
+    });
+  }
+
+  window.cfgToggle = function(){
+    var m=document.getElementById('cfgMenu');
+    var o=document.getElementById('cfgOv');
+    if(!m) return;
+    var on=m.classList.toggle('on');
+    o.classList.toggle('on',on);
+  };
+  window.cfgClose = function(){
+    var m=document.getElementById('cfgMenu');
+    var o=document.getElementById('cfgOv');
+    if(m) m.classList.remove('on');
+    if(o) o.classList.remove('on');
+  };
+  window.cfgLang   = function(l){ applyLang(l);  cfgClose(); };
+  window.cfgTheme  = function(m){ applyTheme(m); cfgClose(); };
+  window.cfgDex    = function(){ cfgClose(); window.open('https://dex.wizclass.net','_blank'); };
+  window.cfgLogout = function(){
+    cfgClose();
+    var msg=lang==='en'?'Logout?':lang==='zh'?'退出登录？':'로그아웃 할까요?';
+    if(!confirm(msg)) return;
+    localStorage.clear(); location.reload();
+  };
+
+  document.addEventListener('DOMContentLoaded',function(){
+    applyLang(lang); applyTheme(theme);
+  });
+})();
+/* ==== 설정 끝 ==== */
+
+function openPay() {
+  if (!cartCount()) return;
+  // 점주 지갑 주소 표시
+  document.getElementById('payStoreName').textContent = currentStore.name;
+  document.getElementById('payWalletAddr').textContent = walletAddr
+    ? walletAddr.slice(0,6)+'...'+walletAddr.slice(-4)
+    : '지갑 미연결';
+
+  // 주문 내역
+  document.getElementById('payItems').innerHTML = cartItems().map(({m,qty}) =>
+    '<div class="pay-item-row">' +
+    '<span class="pay-item-name">' + m.emoji + ' ' + m.name + ' x' + qty + '</span>' +
+    '<span class="pay-item-val">₩' + (m.price*qty).toLocaleString() + '</span>' +
+    '</div>'
+  ).join('');
+
+  const total = cartTotal();
+  const oz    = cartOZ();
+  const usdw  = wonToUSDW(total);
+
+  document.getElementById('payTotal').textContent  = '₩' + total.toLocaleString() + ' ≈ ' + usdw.toFixed(2) + ' USDW';
+  document.getElementById('payReward').textContent = '+' + oz.toFixed(1) + ' OZ';
+
+  // 장바구니 닫기
+  cartOpen = false;
+  document.getElementById('cartDetail').classList.remove('open');
+  document.getElementById('cartArrow').classList.remove('up');
+
+  goPage('pg-pay');
+}
+
+/* ==== USDW 결제 ==== */
+const USDW = {
+  address: '0x1234B0663b82b260DebEe961C2b5DBfC79bADdBd',
+  decimals: 18,
+  // ERC-20 transfer ABI
+  abi: [
+    'function transfer(address to, uint256 amount) returns (bool)',
+    'function balanceOf(address account) view returns (uint256)',
+    'function symbol() view returns (string)',
+    'function decimals() view returns (uint8)',
+  ]
+};
+
+// 원화 → USDW 변환 (1 USDW = 1 USD ≈ 1350원 기준)
+function wonToUSDW(won) {
+  const rate = 1350; // 1 USD = 1350원
+  return won / rate;
+}
+
+async function execPay() {
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.textContent = '처리 중...';
+
+  try {
+    const total = cartTotal();
+    const oz    = cartOZ();
+    const items = cartItems().map(({m,qty}) => ({
+      name: m.name, emoji: m.emoji, price: m.price, qty
+    }));
+
+    // 지갑 연결 확인
+    if (!walletAddr) {
+      alert('지갑을 먼저 연결해주세요.');
+      btn.disabled = false;
+      btn.textContent = '결제하기';
+      return;
+    }
+
+    // ethers provider 확인
+    if (!ethProvider) {
+      const p = await detectEthereum();
+      if (!p) throw new Error('지갑을 찾을 수 없습니다.');
+      ethProvider = new ethers.BrowserProvider(p);
+      ethSigner   = await ethProvider.getSigner();
+    }
+
+    // 점주 지갑 주소 확인
+    const storeWallet = currentStore.wallet_address || currentStore.wallet;
+    if (!storeWallet || storeWallet === '') {
+      throw new Error('점주 지갑 주소가 없습니다.');
+    }
+
+    // USDW 금액 계산 (원화 → USDW)
+    const usdwAmount = wonToUSDW(total);
+    const amountWei  = ethers.parseUnits(usdwAmount.toFixed(6), USDW.decimals);
+
+    btn.textContent = 'USDW 잔액 확인 중...';
+
+    // USDW 컨트랙트 연결
+    const contract = new ethers.Contract(USDW.address, USDW.abi, ethSigner);
+
+    // 잔액 확인
+    const balance = await contract.balanceOf(walletAddr);
+    if (balance < amountWei) {
+      const balFormatted = ethers.formatUnits(balance, USDW.decimals);
+      throw new Error('USDW 잔액 부족\n보유: ' + parseFloat(balFormatted).toFixed(2) + ' USDW\n필요: ' + usdwAmount.toFixed(2) + ' USDW');
+    }
+
+    btn.textContent = '결제 승인 중...';
+
+    // USDW transfer 실행
+    const tx = await contract.transfer(storeWallet, amountWei);
+
+    btn.textContent = '블록 확인 중...';
+
+    // 트랜잭션 완료 대기
+    const receipt = await tx.wait();
+
+    btn.textContent = '주문 저장 중...';
+
+    // 서버에 주문 저장
+    const data = await api('POST', '/api/orders', {
+      store_id:        currentStore.id,
+      customer_wallet: walletAddr,
+      items,
+      total_wusd:      usdwAmount.toFixed(6),
+      total_oz:        oz.toFixed(4),
+      tx_hash:         receipt.hash,
+      status:          'new'
+    });
+
+    const orderNo = data?.order?.order_no || receipt.hash.slice(2,10).toUpperCase();
+
+    // 완료 화면
+    document.getElementById('doneOrder').textContent  = '주문번호 #' + orderNo;
+    document.getElementById('doneReward').textContent = '+' + oz.toFixed(1);
+    document.getElementById('doneTx').textContent     = 'Tx: ' + receipt.hash.slice(0,18) + '...';
+
+    cart = {};
+    updateCartBar();
+    goPage('pg-done');
+
+  } catch(e) {
+    const msg = e.code === 4001 ? '결제를 취소했습니다.' : (e.message || String(e));
+    alert('결제 실패: ' + msg);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '결제하기';
+}
+/* ==== USDW 결제 끝 ==== */
+
+/* -- 환율 -- */
+var customerRate = 1350;
+async function fetchCustomerRate() {
+  try {
+    const r = await api('GET', '/api/rate');
+    if (r && r.usdKrw) customerRate = r.usdKrw;
+  } catch(_) {}
+}
+
+/* -- 메뉴 렌더링 -- */
+function renderMenus() {
+  const menus = currentCat === 'all'
+    ? currentStore.menus
+    : currentStore.menus.filter(m => m.cat === currentCat);
+
+  document.getElementById('menuList').innerHTML = menus.map(m => {
+    const qty = cart[m.id] || 0;
+    const usd = (m.price / customerRate).toFixed(2);
+    const qtyCtrl = m.soldout
+      ? '<span class="soldout-badge">품절</span>'
+      : '<div class="qty-wrap">' +
+          (qty > 0
+            ? '<button class="qty-btn" onclick="chgQty(' + m.id + ',-1,event)">−</button>' +
+              '<span class="qty-num">' + qty + '</span>'
+            : '<span class="qty-num" style="min-width:0"></span>') +
+          '<button class="qty-add" onclick="chgQty(' + m.id + ',1,event)">+</button>' +
+        '</div>';
+
+    return '<div class="menu-row' + (m.soldout ? ' soldout' : '') + '">' +
+      '<div class="menu-emoji">' + (m.emoji||'🍽') + '</div>' +
+      '<div class="menu-info">' +
+        '<div class="menu-name">' + m.name + '</div>' +
+        '<div class="menu-desc">' + (m.desc||'') + '</div>' +
+        '<div>' +
+          '<span class="menu-price">₩' + m.price.toLocaleString() + '</span>' +
+          '<span style="font-size:13px;color:var(--muted);margin-left:6px;">$' + usd + '</span>' +
+          '<span class="menu-rw">' + m.reward + 'x OZ</span>' +
+        '</div>' +
+      '</div>' +
+      qtyCtrl +
+    '</div>';
+  }).join('');
+}
+
+function renderCatBar() {
+  const cats = ['all', ...new Set(currentStore.menus.map(m => m.cat))];
+  document.getElementById('catBar').innerHTML = cats.map(c =>
+    '<button class="cat-btn' + (c===currentCat?' on':'') + '" onclick="selCat(\''+c+'\',this)">' +
+    (c==='all'?'전체':c) + '</button>'
+  ).join('');
+}
+
+function selCat(c, el) {
+  currentCat = c;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  renderMenus();
+}
+
+function chgQty(id, d, e) {
+  e.stopPropagation();
+  const m = currentStore.menus.find(x => x.id == id);
+  if (!m || m.soldout) return;
+  cart[id] = (cart[id] || 0) + d;
+  if (cart[id] <= 0) delete cart[id];
+  renderMenus();
+  updateCartBar();
+}
+</script>
 </head>
 <body>
 
 <!-- ══════════════════════════
      PAGE 1: 지갑 연결
 ══════════════════════════ -->
-<div class="page on" id="pg-wallet">
+    </div>
+  </div>
+</div>
+
+<div class="page on" id="pg-wallet" style="position:relative;">
+  <div class="cfg-wrap">
+    <button class="cfg-btn" id="cfgBtn" onclick="cfgToggle()">
+      <span id="cfgLang" style="font-size:20px;">🇰🇷</span>
+      <span id="cfgThemeIcon" style="font-size:16px;">☀️</span>
+    </button>
+    <div class="cfg-menu" id="cfgMenu">
+      <div class="cfg-sec">언어 / Language</div>
+      <div class="cfg-row" onclick="cfgLang('ko')"><span>🇰🇷 한국어</span><span class="cfg-chk" id="lk">✓</span></div>
+      <div class="cfg-row" onclick="cfgLang('en')"><span>🇺🇸 English</span><span class="cfg-chk" id="le" style="display:none">✓</span></div>
+      <div class="cfg-row" onclick="cfgLang('zh')"><span>🇨🇳 中文</span><span class="cfg-chk" id="lz" style="display:none">✓</span></div>
+      <div class="cfg-sec" style="margin-top:4px">테마 / Theme</div>
+      <div class="cfg-row" onclick="cfgTheme('light')"><span>☀️ 라이트</span><span class="cfg-chk" id="tl">✓</span></div>
+      <div class="cfg-row" onclick="cfgTheme('dark')"><span>🌙 다크</span><span class="cfg-chk" id="td" style="display:none">✓</span></div>
+      <div class="cfg-sec" style="margin-top:4px">서비스</div>
+      <div class="cfg-row" onclick="cfgDex()"><span>💱 WizDEX</span></div>
+      <div class="cfg-row red" onclick="cfgLogout()"><span>⏏ 로그아웃</span></div>
+    </div>
+  </div>
+  <div class="cfg-ov" id="cfgOv" onclick="cfgClose()"></div>
+
   <div class="logo">Wiz<span>Pay</span></div>
-  <div class="tagline">더 편한 글로벌 올인원 페이</div>
+  <div class="tagline"><span id="i-tagline">더 편한 글로벌 올인원 페이</span></div>
   <div class="wiz-badge">
     <div class="wiz-dot"></div>
     <span class="wiz-name">WizChain</span>
@@ -279,7 +619,7 @@ body { max-width:430px; margin:0 auto; position:relative; overflow-x:hidden; }
       <span class="w-btn-icon">🦊</span>
       <div>
         <div class="w-btn-name">MetaMask</div>
-        <div class="w-btn-desc">브라우저 익스텐션 / 모바일 앱</div>
+        <div class="w-btn-desc"><span id="i-mm">브라우저 익스텐션 / 모바일 앱</span></div>
       </div>
       <span class="w-btn-arr">→</span>
     </button>
@@ -287,19 +627,19 @@ body { max-width:430px; margin:0 auto; position:relative; overflow-x:hidden; }
       <span class="w-btn-icon">🛡️</span>
       <div>
         <div class="w-btn-name">Trust Wallet</div>
-        <div class="w-btn-desc">모바일 앱으로 연결</div>
+        <div class="w-btn-desc"><span id="i-tw">모바일 앱으로 연결</span></div>
       </div>
       <span class="w-btn-arr">→</span>
     </button>
-    <button class="w-btn" onclick="connectWC()">
-      <span class="w-btn-icon">🔗</span>
+    <button class="w-btn" onclick="openDex()" style="border-color:#7c3aed;">
+      <span class="w-btn-icon">💱</span>
       <div>
-        <div class="w-btn-name">WalletConnect</div>
-        <div class="w-btn-desc">300+ 지갑 QR 연결</div>
+        <div class="w-btn-name" style="color:#7c3aed;">WizDEX</div>
+        <div class="w-btn-desc"><span id="i-dex">WizChain 탈중앙화 거래소</span></div>
       </div>
       <span class="w-btn-arr">→</span>
     </button>
-    <button class="guest-btn" onclick="goStores(null)">지갑 없이 둘러보기</button>
+<button class="guest-btn" onclick="goStores(null)"><span><span id="i-guest">지갑 없이 둘러보기</span></span></button>
     <div class="net-note">WizChain (Chain ID: 10243)<br>연결 시 자동으로 네트워크 전환</div>
   </div>
 </div>
@@ -326,7 +666,7 @@ body { max-width:430px; margin:0 auto; position:relative; overflow-x:hidden; }
 ══════════════════════════ -->
 <div class="page" id="pg-menu">
   <div class="menu-header">
-    <button class="back-btn" onclick="goPage('pg-stores')">← 매장 목록</button>
+    <button class="back-btn" onclick="goPage('pg-stores')"><span>← 매장 목록</span></button>
     <div class="store-hero">
       <div class="hero-emoji" id="heroEmoji">🏪</div>
       <div>
@@ -384,8 +724,8 @@ body { max-width:430px; margin:0 auto; position:relative; overflow-x:hidden; }
     </div>
   </div>
   <div class="pay-footer">
-    <button class="pay-confirm-btn" id="payBtn" onclick="execPay()">결제하기</button>
-    <span class="pay-cancel" onclick="goPage('pg-menu')">취소</span>
+    <button class="pay-confirm-btn" id="payBtn" onclick="execPay()"><span>결제하기</span></button>
+    <span class="pay-cancel" onclick="goPage('pg-menu')"><span>취소</span></span>
   </div>
 </div>
 
@@ -401,481 +741,10 @@ body { max-width:430px; margin:0 auto; position:relative; overflow-x:hidden; }
     <div class="done-reward-val" id="doneReward">+0</div>
   </div>
   <div class="done-tx" id="doneTx">Tx: 0x...</div>
-  <button class="done-back-btn" onclick="goPage('pg-stores')">← 매장 목록</button>
+  <button class="done-back-btn" onclick="goPage('pg-stores')"><span>← 매장 목록</span></button>
 </div>
 
 <script>
-/* -- API 설정 -- */
-const API = 'https://pos-api.wizclass.net';
-
-/* -- API 호출 헬퍼 -- */
-async function api(method, path, body) {
-  try {
-    const res = await fetch(API + path, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(5000)
-    });
-    return await res.json();
-  } catch(e) {
-    console.warn('API 오류:', e.message);
-    return null;
-  }
-}
-
-/* -- 샘플 데이터 (서버 없을 때 폴백) -- */
-const STORES = [
-  {
-    id:'s1', name:'위즈카페 강남점', cat:'☕ 카페', emoji:'☕',
-    menus:[
-      {id:1, name:'아메리카노', cat:'커피', emoji:'☕', price:4500, reward:1, desc:'진한 에스프레소', soldout:false},
-      {id:2, name:'카페라떼', cat:'커피', emoji:'🥛', price:5000, reward:1.5, desc:'부드러운 우유 거품', soldout:false},
-      {id:3, name:'바닐라라떼', cat:'커피', emoji:'🍦', price:5500, reward:2, desc:'달콤한 바닐라 시럽', soldout:false},
-      {id:4, name:'치즈케이크', cat:'디저트', emoji:'🍰', price:7000, reward:3, desc:'뉴욕 스타일 치즈케이크', soldout:false},
-      {id:5, name:'마카롱', cat:'디저트', emoji:'🍬', price:3500, reward:1, desc:'오늘의 마카롱', soldout:true},
-    ]
-  },
-  {
-    id:'s2', name:'베이크하우스 서초', cat:'🥐 베이커리', emoji:'🥐',
-    menus:[
-      {id:6, name:'크루아상', cat:'빵', emoji:'🥐', price:3800, reward:1.5, desc:'버터 향 가득', soldout:false},
-      {id:7, name:'소보로빵', cat:'빵', emoji:'🍞', price:2500, reward:1, desc:'바삭한 소보로', soldout:false},
-      {id:8, name:'딸기케이크', cat:'케이크', emoji:'🍓', price:7500, reward:2, desc:'생딸기 듬뿍', soldout:false},
-    ]
-  },
-  {
-    id:'s3', name:'마포 숯불갈비', cat:'🍖 한식', emoji:'🔥',
-    menus:[
-      {id:9, name:'돼지갈비(1인)', cat:'메인', emoji:'🥩', price:15000, reward:2, desc:'국내산 한돈', soldout:false},
-      {id:10, name:'냉면', cat:'메인', emoji:'🍜', price:9000, reward:1, desc:'시원한 평양냉면', soldout:false},
-      {id:11, name:'된장찌개', cat:'찌개', emoji:'🍲', price:8000, reward:1, desc:'구수한 된장', soldout:false},
-    ]
-  },
-];
-
-/* -- 상태 -- */
-let walletAddr = '';
-let currentStore = null;
-let cart = {}; // {menuId: qty}
-let cartOpen = false;
-let currentCat = 'all';
-
-/* -- 페이지 전환 -- */
-function goPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
-  document.getElementById(id).classList.add('on');
-  window.scrollTo(0,0);
-}
-
-/* -- 에러/로딩 -- */
-function showErr(msg) {
-  const el = document.getElementById('errBox');
-  el.textContent = msg; el.style.display = 'block';
-}
-function hideErr() { document.getElementById('errBox').style.display = 'none'; }
-function showLoad(v) { document.getElementById('loadBox').style.display = v ? 'block' : 'none'; }
-
-/* -- 브라우저 환경 감지 -- */
-function getEnv() {
-  const ua = navigator.userAgent.toLowerCase();
-  return {
-    isKakao:    ua.includes('kakaotalk'),
-    isSamsung:  ua.includes('samsungbrowser'),
-    isMetaMask: ua.includes('metamask'),
-    isTrust:    ua.includes('trust'),
-    isMobile:   /android|iphone|ipad/i.test(ua),
-  };
-}
-
-/* -- MetaMask 딥링크 -- */
-function openMetaMask() {
-  const url = location.href.replace(/^https?:\/\//, '');
-  window.location.href = 'https://metamask.app.link/dapp/' + url;
-}
-
-/* -- ethereum 감지 (최대 500ms) -- */
-function detectEthereum() {
-  return new Promise(resolve => {
-    if (window.ethereum) return resolve(window.ethereum);
-    if (window.web3?.currentProvider) return resolve(window.web3.currentProvider);
-    let n = 0;
-    const t = setInterval(() => {
-      if (window.ethereum) { clearInterval(t); resolve(window.ethereum); }
-      else if (window.web3?.currentProvider) { clearInterval(t); resolve(window.web3.currentProvider); }
-      else if (++n > 5) { clearInterval(t); resolve(null); } // 5회×100ms = 0.5초
-    }, 100);
-  });
-}
-
-/* -- 지갑 연결 공통 -- */
-async function connectWallet(provider) {
-  hideErr(); showLoad(true);
-  try {
-    if (typeof ethers === 'undefined') throw new Error('ethers 라이브러리 로드 실패. 새로고침하세요.');
-    const bp = new ethers.BrowserProvider(provider);
-    await bp.send('eth_requestAccounts', []);
-    const signer = await bp.getSigner();
-    walletAddr = await signer.getAddress();
-    // WizChain 전환 (거부해도 계속)
-    try {
-      await provider.request({ method:'wallet_switchEthereumChain', params:[{chainId:'0x27F3'}] });
-    } catch(e) {
-      if (e.code === 4902 || e.code === -32603) {
-        try {
-          await provider.request({ method:'wallet_addEthereumChain', params:[{
-            chainId:'0x27F3', chainName:'WizChain',
-            nativeCurrency:{name:'WCN',symbol:'WCN',decimals:18},
-            rpcUrls:['https://rpc.wizclass.net']
-          }]});
-        } catch(_) {}
-      }
-    }
-    localStorage.setItem('wizpay_addr', walletAddr);
-    goStores(walletAddr);
-  } catch(e) {
-    if (e.code === 4001) showErr('연결을 취소했습니다.');
-    else showErr('연결 실패: ' + (e.message || String(e)));
-  }
-  showLoad(false);
-}
-
-/* -- MetaMask 연결 -- */
-async function connectMM() {
-  hideErr();
-  const env = getEnv();
-  // 카카오/삼성/일반모바일 -> 딜레이 없이 즉시 MetaMask 앱으로
-  if (env.isKakao || env.isSamsung || (env.isMobile && !env.isMetaMask && !env.isTrust)) {
-    openMetaMask(); return;
-  }
-  // MetaMask 내장브라우저 or PC -> ethereum 감지 후 연결
-  const p = await detectEthereum();
-  if (!p) { openMetaMask(); return; }
-  await connectWallet(p);
-}
-
-/* -- WalletConnect 연결 -- */
-async function connectWC() {
-  hideErr();
-  const env = getEnv();
-  if (env.isKakao || env.isSamsung || (env.isMobile && !env.isMetaMask && !env.isTrust)) {
-    openMetaMask(); return;
-  }
-  const p = await detectEthereum();
-  if (!p) { openMetaMask(); return; }
-  await connectWallet(p);
-}
-
-/* -- Trust Wallet 연결 -- */
-async function connectTW() {
-  hideErr();
-  const env = getEnv();
-  const twUrl = 'https://link.trustwallet.com/open_url?coin_id=60&url=' + encodeURIComponent(location.href);
-  if (env.isKakao || env.isSamsung || (env.isMobile && !env.isMetaMask && !env.isTrust)) {
-    window.location.href = twUrl; return;
-  }
-  const p = await detectEthereum();
-  if (!p) { window.location.href = twUrl; return; }
-  await connectWallet(p);
-}
-
-/* -- 매장 목록 -- */
-async function goStores(addr) {
-  if (addr) {
-    document.getElementById('addrPill').style.display = 'flex';
-    document.getElementById('addrShort').textContent = addr.slice(0,6)+'...'+addr.slice(-4);
-  }
-  goPage('pg-stores');
-  await loadStores();
-}
-
-async function loadStores() {
-  const list = document.getElementById('storeList');
-  list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">매장 불러오는 중...</div>';
-  const data = await api('GET', '/api/stores');
-  if (data && data.stores && data.stores.length) {
-    // 서버 데이터 형식을 앱 형식으로 변환
-    const serverStores = data.stores.map(s => ({
-      id: String(s.id),
-      name: s.name,
-      cat: s.cat,
-      emoji: s.emoji || '🏪',
-      menus: [] // 메뉴는 상세에서 따로 로드
-    }));
-    renderStoreList(list, serverStores);
-  } else {
-    // 폴백: 샘플 데이터
-    renderStoreList(list, STORES);
-  }
-}
-
-let loadedStores = []; // 로드된 매장 목록 전역 저장
-
-function renderStoreList(list, stores) {
-  loadedStores = stores; // 전역 저장 (openStore에서 참조)
-  if (!stores.length) {
-    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">주변에 등록된 매장이 없습니다</div>';
-    return;
-  }
-  list.innerHTML = stores.map(s => `
-    <div class="store-card" onclick="openStore('${s.id}')">
-      <div class="sc-body">
-        <div class="sc-emoji">${s.emoji}</div>
-        <div class="sc-info">
-          <div class="sc-name">${s.name}</div>
-          <div class="sc-cat">${s.cat}</div>
-          <div class="sc-tags">
-            <span class="sc-tag">WizChain 결제</span>
-            <span class="sc-tag">OZ 적립</span>
-          </div>
-        </div>
-      </div>
-      <div class="sc-footer">
-        <div class="sc-reward">OZ 토큰 <strong>적립</strong></div>
-        <div class="sc-go">메뉴 보기 -></div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function showAddr() {
-  if (walletAddr) alert('연결된 지갑\n' + walletAddr);
-}
-
-/* -- 매장 상세 / 메뉴 -- */
-async function openStore(id) {
-  // STORES 샘플 또는 서버에서 로드된 스토어 찾기
-  currentStore = loadedStores.find(s => s.id === id) || STORES.find(s => s.id === id) || { id, name:'', cat:'', emoji:'🏪', menus:[] };
-  cart = {};
-  currentCat = 'all';
-  document.getElementById('heroEmoji').textContent = currentStore.emoji;
-  document.getElementById('heroName').textContent = currentStore.name;
-  document.getElementById('heroCat').textContent = currentStore.cat;
-  goPage('pg-menu');
-  renderMenus(); // 일단 빈 상태로 표시
-
-  // 서버에서 매장+메뉴 상세 로드
-  const data = await api('GET', '/api/stores/' + id);
-  if (data && data.store) {
-    const s = data.store;
-    currentStore = {
-      id: String(s.id),
-      name: s.name,
-      cat: s.cat,
-      emoji: s.emoji || '🏪',
-      menus: (s.menus || []).map(m => ({
-        id: m.id,
-        name: m.name,
-        cat: m.cat,
-        emoji: m.emoji || '🍽',
-        price: m.price,
-        reward: parseFloat(m.reward) || 1,
-        desc: m.description || '',
-        soldout: !!m.soldout
-      }))
-    };
-    document.getElementById('heroEmoji').textContent = currentStore.emoji;
-    document.getElementById('heroName').textContent = currentStore.name;
-    document.getElementById('heroCat').textContent = currentStore.cat;
-  }
-  renderCatBar();
-  renderMenus();
-  updateCartBar();
-}
-
-function renderCatBar() {
-  const cats = ['all', ...new Set(currentStore.menus.map(m => m.cat))];
-  document.getElementById('catBar').innerHTML = cats.map(c =>
-    `<button class="cat-btn${c===currentCat?' on':''}" onclick="selCat('${c}',this)">${c==='all'?'전체':c}</button>`
-  ).join('');
-}
-
-function selCat(c, el) {
-  currentCat = c;
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('on'));
-  el.classList.add('on');
-  renderMenus();
-}
-
-function renderMenus() {
-  const menus = currentCat === 'all' ? currentStore.menus : currentStore.menus.filter(m => m.cat === currentCat);
-  document.getElementById('menuList').innerHTML = menus.map(m => {
-    const qty = cart[m.id] || 0;
-    const qtyCtrl = m.soldout
-      ? `<span class="soldout-badge">품절</span>`
-      : `<div class="qty-wrap">
-          ${qty > 0 ? `<button class="qty-btn" onclick="chgQty(${m.id},-1,event)">−</button><span class="qty-num">${qty}</span>` : `<span class="qty-num" style="min-width:0"></span>`}
-          <button class="qty-add" onclick="chgQty(${m.id},1,event)">+</button>
-        </div>`;
-    return `
-      <div class="menu-row${m.soldout?' soldout':''}">
-        <div class="menu-emoji">${m.emoji}</div>
-        <div class="menu-info">
-          <div class="menu-name">${m.name}</div>
-          <div class="menu-desc">${m.desc}</div>
-          <div>
-            <span class="menu-price">₩${m.price.toLocaleString()}</span>
-            <span class="menu-rw">${m.reward}x OZ</span>
-          </div>
-        </div>
-        ${qtyCtrl}
-      </div>`;
-  }).join('');
-}
-
-function chgQty(id, d, e) {
-  e.stopPropagation();
-  const m = currentStore.menus.find(x => x.id === id);
-  if (!m || m.soldout) return;
-  cart[id] = (cart[id] || 0) + d;
-  if (cart[id] <= 0) delete cart[id];
-  renderMenus();
-  updateCartBar();
-}
-
-/* -- 장바구니 -- */
-function cartItems() { return Object.entries(cart).map(([id,qty]) => ({m: currentStore.menus.find(x=>x.id==id), qty})).filter(x=>x.m); }
-function cartTotal() { return cartItems().reduce((s,{m,qty}) => s + m.price*qty, 0); }
-function cartCount() { return cartItems().reduce((s,{qty}) => s+qty, 0); }
-function cartOZ() { return cartItems().reduce((s,{m,qty}) => s + m.price*qty/100*m.reward, 0); }
-
-function updateCartBar() {
-  document.getElementById('cartCnt').textContent = cartCount();
-  document.getElementById('cartTotal').textContent = '₩' + cartTotal().toLocaleString();
-}
-
-function toggleCart() {
-  cartOpen = !cartOpen;
-  document.getElementById('cartDetail').classList.toggle('open', cartOpen);
-  document.getElementById('cartArrow').classList.toggle('up', cartOpen);
-  if (cartOpen) renderCartDetail();
-}
-
-function renderCartDetail() {
-  const items = cartItems();
-  if (!items.length) {
-    document.getElementById('cartInner').innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">장바구니가 비어있어요</div>';
-    return;
-  }
-  document.getElementById('cartInner').innerHTML =
-    items.map(({m,qty}) => `
-      <div class="cart-row">
-        <div class="cart-row-l">
-          <span class="cart-row-em">${m.emoji}</span>
-          <div>
-            <div class="cart-row-name">${m.name} ×${qty}</div>
-            <div class="cart-row-price">₩${m.price.toLocaleString()}</div>
-          </div>
-        </div>
-        <div class="cart-row-r">
-          <span class="cart-row-total">₩${(m.price*qty).toLocaleString()}</span>
-          <button class="cart-del" onclick="chgQty(${m.id},-${qty},event);renderCartDetail()">✕</button>
-        </div>
-      </div>
-    `).join('') +
-    `<button class="cart-pay-btn" onclick="openPay()">결제하기 ₩${cartTotal().toLocaleString()}</button>
-     <button class="cart-more-btn" onclick="toggleCart()">계속 담기</button>`;
-}
-
-/* -- 결제 화면 -- */
-function openPay() {
-  if (!cartCount()) return;
-  document.getElementById('payStoreName').textContent = currentStore.name;
-  document.getElementById('payWalletAddr').textContent = walletAddr
-    ? walletAddr.slice(0,6)+'...'+walletAddr.slice(-4)
-    : '지갑 미연결 (데모)';
-  document.getElementById('payItems').innerHTML = cartItems().map(({m,qty}) =>
-    `<div class="pay-item-row">
-       <span class="pay-item-name">${m.emoji} ${m.name} ×${qty}</span>
-       <span class="pay-item-val">₩${(m.price*qty).toLocaleString()}</span>
-     </div>`
-  ).join('');
-  document.getElementById('payTotal').textContent = '₩' + cartTotal().toLocaleString();
-  document.getElementById('payReward').textContent = '+' + cartOZ().toFixed(1) + ' OZ';
-  goPage('pg-pay');
-}
-
-async function execPay() {
-  const btn = document.getElementById('payBtn');
-  btn.disabled = true;
-  btn.textContent = '처리 중...';
-  try {
-    const items = cartItems().map(({m, qty}) => ({
-      name: m.name, emoji: m.emoji, price: m.price, qty
-    }));
-    const total = cartTotal();
-    const oz = cartOZ();
-
-    // 서버에 주문 생성
-    const data = await api('POST', '/api/orders', {
-      store_id: currentStore.id,
-      customer_wallet: walletAddr || null,
-      items,
-      total_wusd: total,
-      total_oz: oz,
-      tx_hash: null
-    });
-
-    const orderNo = (data && data.order) ? data.order.order_no : Math.random().toString(16).slice(2,10).toUpperCase();
-    document.getElementById('doneOrder').textContent = '주문번호 #' + orderNo;
-    document.getElementById('doneReward').textContent = '+' + oz.toFixed(1);
-    document.getElementById('doneTx').textContent = data?.order?.id ? 'Order ID: ' + data.order.id : '데모 주문';
-    cart = {};
-    updateCartBar();
-    goPage('pg-done');
-  } catch(e) {
-    alert('주문 실패: ' + e.message);
-  }
-  btn.disabled = false;
-  btn.textContent = '결제하기';
-}
-
-/* -- 초기화 -- */
-window.addEventListener('DOMContentLoaded', function() {
-  // 이전에 연결된 지갑 자동 감지
-  const saved = localStorage.getItem('wizpay_addr');
-  if (saved && window.ethereum) {
-    window.ethereum.request({method:'eth_accounts'}).then(accounts => {
-      if (accounts.length) {
-        walletAddr = accounts[0];
-        goStores(walletAddr);
-      }
-    }).catch(() => {});
-  }
-});
-</script>
-
-<!-- ethers.js CDN (fallback 포함) -->
 
 
-  <script>
-    // Service Worker 등록 (PWA 오프라인 지원)
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(() => console.log('Service Worker 등록됨'))
-          .catch(() => {}); // sw.js 없어도 무시
-      });
-    }
-    // iOS Safari PWA 설치 안내
-    window.addEventListener('DOMContentLoaded', () => {
-      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      const isStandalone = window.navigator.standalone;
-      if (isIOS && !isStandalone) {
-        // 첫 방문 시 한 번만 안내
-        if (!localStorage.getItem('pwa_hint_shown')) {
-          setTimeout(() => {
-            const hint = document.createElement('div');
-            hint.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;text-align:center;z-index:9999;max-width:280px;line-height:1.6;box-shadow:0 4px 20px rgba(0,0,0,.3)';
-            hint.innerHTML = '📲 홈 화면에 추가하면<br>앱처럼 사용할 수 있어요!<br><small style="color:#aaa">Safari -> 공유버튼 -> 홈 화면에 추가</small>';
-            hint.onclick = () => { hint.remove(); localStorage.setItem('pwa_hint_shown','1'); };
-            document.body.appendChild(hint);
-            setTimeout(() => hint.remove(), 6000);
-            localStorage.setItem('pwa_hint_shown','1');
-          }, 3000);
-        }
-      }
-    });
-  </script>
-</body>
-</html>
+
