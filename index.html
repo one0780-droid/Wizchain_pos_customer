@@ -4,6 +4,110 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>WizPAY</title>
+
+<!-- ====== 카카오톡 인앱 브라우저 우회 (최우선 실행) ====== -->
+<script>
+(function(){
+  var ua = navigator.userAgent || '';
+  var isKakao = /KAKAOTALK/i.test(ua);
+  if (!isKakao) return; // 카카오 아니면 즉시 종료
+
+  var isAndroid = /Android/i.test(ua);
+  var isIOS = /iPhone|iPad|iPod/i.test(ua);
+  var currentUrl = location.href;
+
+  // Android: Chrome Intent로 강제 실행
+  if (isAndroid) {
+    var intentUrl = 'intent://' + currentUrl.replace(/^https?:\/\//, '')
+      + '#Intent;scheme=https;package=com.android.chrome;end';
+    location.href = intentUrl;
+    // Intent 실패 대비 — 300ms 후에도 같은 페이지면 안내 화면 표시
+    setTimeout(function(){ showKakaoGuide('android'); }, 300);
+    return;
+  }
+
+  // iOS: 자동 이동 불가 → 안내 화면 표시
+  if (isIOS) {
+    showKakaoGuide('ios');
+    return;
+  }
+
+  // 기타 WebView
+  showKakaoGuide('other');
+
+  function showKakaoGuide(platform) {
+    // DOM이 없을 수도 있으니 즉시 body 생성
+    document.addEventListener('DOMContentLoaded', renderGuide);
+    // DOMContentLoaded가 이미 지났을 경우
+    if (document.readyState !== 'loading') renderGuide();
+
+    function renderGuide() {
+      // 기존 body 내용 모두 숨김
+      document.body.style.cssText = 'margin:0;padding:0;background:#f5f5f5;font-family:"Noto Sans KR",sans-serif;';
+
+      var guide = document.createElement('div');
+      guide.style.cssText = [
+        'position:fixed;inset:0;z-index:99999;',
+        'display:flex;flex-direction:column;align-items:center;justify-content:center;',
+        'background:#f5f5f5;padding:32px 28px;text-align:center;'
+      ].join('');
+
+      var iosExtra = platform === 'ios'
+        ? '<div style="background:#fff;border:1.5px solid #e8e8e8;border-radius:14px;padding:20px 16px;margin-bottom:24px;text-align:left;">'
+          + '<div style="font-size:14px;font-weight:700;color:#111;margin-bottom:12px;">📱 열기 방법</div>'
+          + '<div style="font-size:13px;color:#555;line-height:2;">'
+          + '1️⃣ 화면 우측 하단 <b>···</b> (더보기) 탭<br>'
+          + '2️⃣ <b>Safari로 열기</b> 선택<br>'
+          + '3️⃣ MetaMask 지갑 연결 후 이용'
+          + '</div></div>'
+        : '<div style="background:#fff;border:1.5px solid #e8e8e8;border-radius:14px;padding:20px 16px;margin-bottom:24px;text-align:left;">'
+          + '<div style="font-size:14px;font-weight:700;color:#111;margin-bottom:12px;">📱 열기 방법</div>'
+          + '<div style="font-size:13px;color:#555;line-height:2;">'
+          + '1️⃣ 화면 우측 상단 <b>⋮</b> (더보기) 탭<br>'
+          + '2️⃣ <b>다른 브라우저로 열기</b> 선택<br>'
+          + '3️⃣ Chrome 선택 후 MetaMask 연결'
+          + '</div></div>';
+
+      guide.innerHTML = ''
+        + '<div style="font-family:Outfit,sans-serif;font-weight:900;font-size:44px;letter-spacing:-1px;margin-bottom:6px;">'
+        + 'Wiz<span style="color:#00a86b;">PAY</span></div>'
+        + '<div style="font-size:13px;color:#888;letter-spacing:2px;margin-bottom:32px;">CRYPTO PAYMENT</div>'
+        + '<div style="background:#fff8e1;border:2px solid #f6851b;border-radius:16px;padding:18px 16px;margin-bottom:20px;width:100%;max-width:320px;">'
+        + '<div style="font-size:24px;margin-bottom:6px;">🦊</div>'
+        + '<div style="font-size:15px;font-weight:700;color:#f6851b;margin-bottom:4px;">MetaMask 연결 필요</div>'
+        + '<div style="font-size:13px;color:#888;line-height:1.6;">카카오톡 내 브라우저는 지갑 연결을 지원하지 않아요.<br>외부 브라우저로 열어주세요.</div>'
+        + '</div>'
+        + '<div style="width:100%;max-width:320px;">'
+        + iosExtra
+        + '</div>'
+        + '<button onclick="copyAndOpen()" style="width:100%;max-width:320px;padding:16px;background:#00a86b;border:none;border-radius:14px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:\'Noto Sans KR\',sans-serif;margin-bottom:12px;box-shadow:0 4px 16px rgba(0,168,107,.3);">'
+        + '🔗 링크 복사하기</button>'
+        + '<div id="copyMsg" style="font-size:13px;color:#00a86b;font-weight:600;min-height:20px;"></div>';
+
+      document.body.innerHTML = '';
+      document.body.appendChild(guide);
+
+      window.copyAndOpen = function() {
+        var url = currentUrl;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function(){
+            document.getElementById('copyMsg').textContent = '✅ 링크가 복사되었습니다! 브라우저에 붙여넣기 해주세요.';
+          }).catch(fallback);
+        } else { fallback(); }
+        function fallback() {
+          var t = document.createElement('textarea');
+          t.value = url; t.style.cssText='position:fixed;opacity:0;top:0;left:0;';
+          document.body.appendChild(t); t.select();
+          try { document.execCommand('copy'); document.getElementById('copyMsg').textContent='✅ 링크가 복사되었습니다! 브라우저에 붙여넣기 해주세요.'; }
+          catch(_){ document.getElementById('copyMsg').textContent='주소창에 직접 입력해 주세요: '+url; }
+          document.body.removeChild(t);
+        }
+      };
+    }
+  }
+})();
+</script>
+<!-- ====== 카카오톡 인앱 브라우저 우회 끝 ====== -->
 <!-- PWA -->
 <meta name="theme-color" content="#00a86b">
 <meta name="mobile-web-app-capable" content="yes">
@@ -96,7 +200,7 @@ body{max-width:430px;margin:0 auto}
 .w-btn{width:100%;display:flex;align-items:center;gap:16px;background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:18px 20px;margin-bottom:12px;cursor:pointer;text-align:left;min-height:76px;box-sizing:border-box;font-family:'Noto Sans KR',sans-serif}
 .w-btn.mm{border-color:#f6851b}
 .w-btn.guest-border{border-color:#7c3aed}
-.partner-banner{width:100%;border:2px solid #00a86b;border-radius:16px;padding:18px 20px;margin-bottom:12px;cursor:pointer;background:transparent;min-height:76px;box-sizing:border-box;display:flex;align-items:center;gap:16px;}
+.partner-banner{width:100%;border:2px solid #00a86b;border-radius:16px;padding:18px 20px;margin-bottom:12px;cursor:pointer;background:var(--surface);min-height:76px;box-sizing:border-box;display:flex;align-items:center;gap:16px;}
 .w-btn:active{opacity:.75}
 .w-btn.primary{border-color:#f6851b}
 .w-btn.tw{border-color:#3375ff}
