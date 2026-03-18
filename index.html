@@ -745,9 +745,9 @@ async function connectMM() {
   hideErr();
   const env = getEnv();
 
-  // 카카오/인앱브라우저 → 크롬 강제 열기
+  // 카카오/인앱브라우저 → 크롬 강제 열기 (페이지 로드시 처리됨)
   if(env.isInApp) {
-    showKakaoGuide();
+    openChrome();
     return;
   }
 
@@ -976,10 +976,21 @@ async function execPay(){
 
 /* == 초기화 == */
 window.addEventListener('DOMContentLoaded',function(){
-  const saved=localStorage.getItem('wizpay_addr');
+  // 카카오/인앱브라우저 감지 → 즉시 크롬 강제 실행
+  const env = getEnv();
+  if(env.isInApp) {
+    openChrome();
+    return;
+  }
+
+  const saved=localStorage.getItem('wizpay_addr') || localStorage.getItem('wizpos_addr');
   if(saved&&window.ethereum){
     window.ethereum.request({method:'eth_accounts'}).then(a=>{
-      if(a.length){ walletAddr=a[0]; goStores(walletAddr); }
+      if(a.length){
+        walletAddr=a[0];
+        if(typeof goStores==='function') goStores(walletAddr);
+        else if(typeof afterConnect==='function') afterConnect();
+      }
     }).catch(()=>{});
   }
 });
